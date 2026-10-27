@@ -1,0 +1,15 @@
+# simulation output and logs
+results/
+logs/*
+!logs/.gitkeep
+*.h5
+*.msh
+*.trn
+*.out
+*.err
+cleanup-fluent-*.sh
+
+# python
+__pycache__/
+.pytest_cache/
+*.pyc
