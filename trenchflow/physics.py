@@ -123,6 +123,9 @@ def plan(row, steps_per_period=20, min_steps=2000, cfl=1.0, res_tol=1e-6):
     n_steps = math.ceil(t_end / dt)
     dt = t_end / n_steps
     rotate = v_mode == "rotate"
+    # trench split into upper/lower halves for the deep-mixing metric; it adds report zones only.
+    # split = 0 reproduces the original single-zone mesh byte for byte (used by A0).
+    split = rotate or (row.get("split") or "1").strip() != "0"
     if phi is None and v_mode in ("steady", "follow"):
         phi = math.degrees(math.atan(lam))
     return dict(W=W, AR=AR, H=H, n_per_w=n, h=h, u_avg=u_avg, Us=Us, Up=Up, freq=f, St=St,
@@ -131,8 +134,8 @@ def plan(row, steps_per_period=20, min_steps=2000, cfl=1.0, res_tol=1e-6):
                 v_max=v_max, v_mean=v_mean, phi_deg=phi, top_u=top_u, top_v=top_v,
                 top_type="symmetry" if v_mode == "none" else "velocity-inlet",
                 left_type="pressure-outlet" if rotate else "velocity-inlet",
-                Lu_W=3.0 if rotate else 2.0, Ld_W=3.0, split_cavity=rotate,
-                cavity_zones=["cavity", "cavity-lower"] if rotate else ["cavity"],
+                Lu_W=3.0 if rotate else 2.0, Ld_W=3.0, split_cavity=split,
+                cavity_zones=["cavity", "cavity-lower"] if split else ["cavity"],
                 cfl=cfl, res_tol=res_tol, iters=iters,
                 Re=RHO * u_avg * W / MU, Pe_table1=W * 0.1 * u_avg / DIFF)
 

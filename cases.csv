@@ -1,69 +1,93 @@
-case,family,W_m,AR,mode,u_avg_m_s,freq_Hz,t_end_s,n_per_w,walltime,v_mode,v_ratio,v_freq_Hz,v_phase_deg,angle_deg,cfl,res_tol,iters,note
-A_ar1_steady,A,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,none,,,,,,1e-6,20,"baseline AR 1, steady rinse"
-B_ar1_steady_v0,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0,,,,,1e-6,20,steady V = 0 u_avg (phi = 0 deg at u_avg)
-B_ar1_steady_v0.1,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0.1,,,,,1e-6,20,steady V = 0.1 u_avg (phi = 6 deg at u_avg)
-B_ar1_steady_v0.25,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0.25,,,,,1e-6,20,steady V = 0.25 u_avg (phi = 14 deg at u_avg)
-B_ar1_steady_v0.5,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0.5,,,,,1e-6,20,steady V = 0.5 u_avg (phi = 27 deg at u_avg)
-B_ar1_steady_v1,B,1e-6,1,steady,0.15,0,4e-4,40,05:00:00,steady,1,,,,,1e-6,20,steady V = 1 u_avg (phi = 45 deg at u_avg)
-B_ar1_steady_v2,B,1e-6,1,steady,0.15,0,4e-4,40,07:00:00,steady,2,,,,,1e-6,20,steady V = 2 u_avg (phi = 63 deg at u_avg)
-A_ar1_osc200k,A,1e-6,1,osc,0.15,200000,4e-4,40,07:00:00,none,,,,,,1e-6,20,"baseline AR 1, osc200k rinse"
-B_ar1_osc200k_v0,B,1e-6,1,osc,0.15,200000,4e-4,40,07:00:00,steady,0,,,,,1e-6,20,steady V = 0 u_avg (phi = 0 deg at u_avg)
-B_ar1_osc200k_v0.1,B,1e-6,1,osc,0.15,200000,4e-4,40,08:00:00,steady,0.1,,,,,1e-6,20,steady V = 0.1 u_avg (phi = 6 deg at u_avg)
-B_ar1_osc200k_v0.25,B,1e-6,1,osc,0.15,200000,4e-4,40,08:00:00,steady,0.25,,,,,1e-6,20,steady V = 0.25 u_avg (phi = 14 deg at u_avg)
-B_ar1_osc200k_v0.5,B,1e-6,1,osc,0.15,200000,4e-4,40,09:00:00,steady,0.5,,,,,1e-6,20,steady V = 0.5 u_avg (phi = 27 deg at u_avg)
-B_ar1_osc200k_v1,B,1e-6,1,osc,0.15,200000,4e-4,40,10:00:00,steady,1,,,,,1e-6,20,steady V = 1 u_avg (phi = 45 deg at u_avg)
-B_ar1_osc200k_v2,B,1e-6,1,osc,0.15,200000,4e-4,40,12:00:00,steady,2,,,,,1e-6,20,steady V = 2 u_avg (phi = 63 deg at u_avg)
-Bf_ar1_osc200k_v0.5,Bf,1e-6,1,osc,0.15,200000,4e-4,40,11:00:00,follow,0.5,,,,,1e-6,20,V = 0.5 U(t): fixed phi = 27 deg
-Bf_ar1_osc200k_v1,Bf,1e-6,1,osc,0.15,200000,4e-4,40,14:00:00,follow,1,,,,,1e-6,20,V = 1 U(t): fixed phi = 45 deg
-C_ar1_osc200k_vp200k_ph0,C,1e-6,1,osc,0.15,200000,4e-4,40,11:00:00,pulse,0.5,200000,0,,,1e-6,20,"pulsed V, mean 0.5 u_avg, in phase"
-C_ar1_osc200k_vp200k_ph180,C,1e-6,1,osc,0.15,200000,4e-4,40,11:00:00,pulse,0.5,200000,180,,,1e-6,20,"pulsed V, mean 0.5 u_avg, anti-phase"
-C_ar1_osc200k_vp20k_ph0,C,1e-6,1,osc,0.15,200000,4e-4,40,11:00:00,pulse,0.5,20000,0,,,1e-6,20,"pulsed V, mean 0.5 u_avg, 20 kHz"
-A_ar5_steady,A,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,none,,,,,,1e-6,20,"baseline AR 5, steady rinse"
-B_ar5_steady_v0,B,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,steady,0,,,,,1e-6,20,steady V = 0 u_avg (phi = 0 deg at u_avg)
-B_ar5_steady_v0.1,B,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,steady,0.1,,,,,1e-6,20,steady V = 0.1 u_avg (phi = 6 deg at u_avg)
-B_ar5_steady_v0.25,B,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,steady,0.25,,,,,1e-6,20,steady V = 0.25 u_avg (phi = 14 deg at u_avg)
-B_ar5_steady_v0.5,B,1e-6,5,steady,0.15,0,4e-4,40,05:00:00,steady,0.5,,,,,1e-6,20,steady V = 0.5 u_avg (phi = 27 deg at u_avg)
-B_ar5_steady_v1,B,1e-6,5,steady,0.15,0,4e-4,40,06:00:00,steady,1,,,,,1e-6,20,steady V = 1 u_avg (phi = 45 deg at u_avg)
-B_ar5_steady_v2,B,1e-6,5,steady,0.15,0,4e-4,40,09:00:00,steady,2,,,,,1e-6,20,steady V = 2 u_avg (phi = 63 deg at u_avg)
-A_ar5_osc200k,A,1e-6,5,osc,0.15,200000,4e-4,40,09:00:00,none,,,,,,1e-6,20,"baseline AR 5, osc200k rinse"
-B_ar5_osc200k_v0,B,1e-6,5,osc,0.15,200000,4e-4,40,09:00:00,steady,0,,,,,1e-6,20,steady V = 0 u_avg (phi = 0 deg at u_avg)
-B_ar5_osc200k_v0.1,B,1e-6,5,osc,0.15,200000,4e-4,40,10:00:00,steady,0.1,,,,,1e-6,20,steady V = 0.1 u_avg (phi = 6 deg at u_avg)
-B_ar5_osc200k_v0.25,B,1e-6,5,osc,0.15,200000,4e-4,40,10:00:00,steady,0.25,,,,,1e-6,20,steady V = 0.25 u_avg (phi = 14 deg at u_avg)
-B_ar5_osc200k_v0.5,B,1e-6,5,osc,0.15,200000,4e-4,40,11:00:00,steady,0.5,,,,,1e-6,20,steady V = 0.5 u_avg (phi = 27 deg at u_avg)
-B_ar5_osc200k_v1,B,1e-6,5,osc,0.15,200000,4e-4,40,12:00:00,steady,1,,,,,1e-6,20,steady V = 1 u_avg (phi = 45 deg at u_avg)
-B_ar5_osc200k_v2,B,1e-6,5,osc,0.15,200000,4e-4,40,15:00:00,steady,2,,,,,1e-6,20,steady V = 2 u_avg (phi = 63 deg at u_avg)
-Bf_ar5_osc200k_v0.5,Bf,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,follow,0.5,,,,,1e-6,20,V = 0.5 U(t): fixed phi = 27 deg
-Bf_ar5_osc200k_v1,Bf,1e-6,5,osc,0.15,200000,4e-4,40,18:00:00,follow,1,,,,,1e-6,20,V = 1 U(t): fixed phi = 45 deg
-C_ar5_osc200k_vp200k_ph0,C,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,pulse,0.5,200000,0,,,1e-6,20,"pulsed V, mean 0.5 u_avg, in phase"
-C_ar5_osc200k_vp200k_ph180,C,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,pulse,0.5,200000,180,,,1e-6,20,"pulsed V, mean 0.5 u_avg, anti-phase"
-C_ar5_osc200k_vp20k_ph0,C,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,pulse,0.5,20000,0,,,1e-6,20,"pulsed V, mean 0.5 u_avg, 20 kHz"
-V_ar5_osc200k_v0.5_dt,V,1e-6,5,osc,0.15,200000,4e-4,40,21:00:00,steady,0.5,,,,0.5,1e-6,20,time-step check: B_ar5_osc200k_v0.5 with cfl 0.5
-V_ar5_osc200k_v0.5_n80,V,1e-6,5,osc,0.15,200000,4e-4,80,82:00:00,steady,0.5,,,,,1e-6,20,mesh check: B_ar5_osc200k_v0.5 at 80 cells/W
-R_w1um_ar1_steady_a00,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,0,,1e-6,20,"same speed, stream at 0 deg from the wafer"
-R_w1um_ar1_steady_a15,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,15,,1e-6,20,"same speed, stream at 15 deg from the wafer"
-R_w1um_ar1_steady_a30,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,30,,1e-6,20,"same speed, stream at 30 deg from the wafer"
-R_w1um_ar1_steady_a45,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,45,,1e-6,20,"same speed, stream at 45 deg from the wafer"
-R_w1um_ar1_steady_a60,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,60,,1e-6,20,"same speed, stream at 60 deg from the wafer"
-R_w1um_ar1_steady_a75,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,75,,1e-6,20,"same speed, stream at 75 deg from the wafer"
-R_w1um_ar1_steady_a90,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,90,,1e-6,20,"same speed, stream at 90 deg from the wafer"
-R_w1um_ar5_steady_a00,R,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,0,,1e-6,20,"same speed, stream at 0 deg from the wafer"
-R_w1um_ar5_steady_a15,R,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,15,,1e-6,20,"same speed, stream at 15 deg from the wafer"
-R_w1um_ar5_steady_a30,R,1e-6,5,steady,0.15,0,4e-4,40,05:00:00,rotate,,,,30,,1e-6,20,"same speed, stream at 30 deg from the wafer"
-R_w1um_ar5_steady_a45,R,1e-6,5,steady,0.15,0,4e-4,40,05:00:00,rotate,,,,45,,1e-6,20,"same speed, stream at 45 deg from the wafer"
-R_w1um_ar5_steady_a60,R,1e-6,5,steady,0.15,0,4e-4,40,05:00:00,rotate,,,,60,,1e-6,20,"same speed, stream at 60 deg from the wafer"
-R_w1um_ar5_steady_a75,R,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,75,,1e-6,20,"same speed, stream at 75 deg from the wafer"
-R_w1um_ar5_steady_a90,R,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,90,,1e-6,20,"same speed, stream at 90 deg from the wafer"
-R_w1um_ar5_osc200k_a00,R,1e-6,5,osc,0.15,200000,4e-4,40,10:00:00,rotate,,,,0,,1e-6,20,"same speed, stream at 0 deg from the wafer"
-R_w1um_ar5_osc200k_a15,R,1e-6,5,osc,0.15,200000,4e-4,40,13:00:00,rotate,,,,15,,1e-6,20,"same speed, stream at 15 deg from the wafer"
-R_w1um_ar5_osc200k_a30,R,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,rotate,,,,30,,1e-6,20,"same speed, stream at 30 deg from the wafer"
-R_w1um_ar5_osc200k_a45,R,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,rotate,,,,45,,1e-6,20,"same speed, stream at 45 deg from the wafer"
-R_w1um_ar5_osc200k_a60,R,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,rotate,,,,60,,1e-6,20,"same speed, stream at 60 deg from the wafer"
-R_w1um_ar5_osc200k_a75,R,1e-6,5,osc,0.15,200000,4e-4,40,13:00:00,rotate,,,,75,,1e-6,20,"same speed, stream at 75 deg from the wafer"
-R_w1um_ar5_osc200k_a90,R,1e-6,5,osc,0.15,200000,4e-4,40,10:00:00,rotate,,,,90,,1e-6,20,"same speed, stream at 90 deg from the wafer"
-R_w100um_ar5_steady_a00,R,1e-4,5,steady,0.15,0,0.1,40,08:00:00,rotate,,,,0,,1e-6,20,"same speed, stream at 0 deg from the wafer"
-R_w100um_ar5_steady_a15,R,1e-4,5,steady,0.15,0,0.1,40,10:00:00,rotate,,,,15,,1e-6,20,"same speed, stream at 15 deg from the wafer"
-R_w100um_ar5_steady_a30,R,1e-4,5,steady,0.15,0,0.1,40,11:00:00,rotate,,,,30,,1e-6,20,"same speed, stream at 30 deg from the wafer"
-R_w100um_ar5_steady_a45,R,1e-4,5,steady,0.15,0,0.1,40,12:00:00,rotate,,,,45,,1e-6,20,"same speed, stream at 45 deg from the wafer"
-R_w100um_ar5_steady_a60,R,1e-4,5,steady,0.15,0,0.1,40,11:00:00,rotate,,,,60,,1e-6,20,"same speed, stream at 60 deg from the wafer"
-R_w100um_ar5_steady_a75,R,1e-4,5,steady,0.15,0,0.1,40,10:00:00,rotate,,,,75,,1e-6,20,"same speed, stream at 75 deg from the wafer"
-R_w100um_ar5_steady_a90,R,1e-4,5,steady,0.15,0,0.1,40,08:00:00,rotate,,,,90,,1e-6,20,"same speed, stream at 90 deg from the wafer"
+case,family,W_m,AR,mode,u_avg_m_s,freq_Hz,t_end_s,n_per_w,walltime,v_mode,v_ratio,v_freq_Hz,v_phase_deg,angle_deg,split,cfl,res_tol,iters,note
+A0_ar1_osc200k,A0,1e-6,1,osc,0.15,200000,4e-4,40,07:00:00,none,,,,,0,,1e-6,20,original baseline mesh (no split): reproduction check
+A_ar1_steady,A,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,none,,,,,,,1e-6,20,"baseline AR 1, steady rinse"
+B_ar1_steady_v0,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0,,,,,,1e-6,20,steady V = 0 u_avg (phi = 0 deg at u_avg)
+B_ar1_steady_v0.1,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0.1,,,,,,1e-6,20,steady V = 0.1 u_avg (phi = 6 deg at u_avg)
+B_ar1_steady_v0.25,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0.25,,,,,,1e-6,20,steady V = 0.25 u_avg (phi = 14 deg at u_avg)
+B_ar1_steady_v0.5,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0.5,,,,,,1e-6,20,steady V = 0.5 u_avg (phi = 27 deg at u_avg)
+B_ar1_steady_v1,B,1e-6,1,steady,0.15,0,4e-4,40,05:00:00,steady,1,,,,,,1e-6,20,steady V = 1 u_avg (phi = 45 deg at u_avg)
+B_ar1_steady_v2,B,1e-6,1,steady,0.15,0,4e-4,40,07:00:00,steady,2,,,,,,1e-6,20,steady V = 2 u_avg (phi = 63 deg at u_avg)
+A_ar1_osc200k,A,1e-6,1,osc,0.15,200000,4e-4,40,07:00:00,none,,,,,,,1e-6,20,"baseline AR 1, osc200k rinse"
+B_ar1_osc200k_v0,B,1e-6,1,osc,0.15,200000,4e-4,40,07:00:00,steady,0,,,,,,1e-6,20,steady V = 0 u_avg (phi = 0 deg at u_avg)
+B_ar1_osc200k_v0.1,B,1e-6,1,osc,0.15,200000,4e-4,40,08:00:00,steady,0.1,,,,,,1e-6,20,steady V = 0.1 u_avg (phi = 6 deg at u_avg)
+B_ar1_osc200k_v0.25,B,1e-6,1,osc,0.15,200000,4e-4,40,08:00:00,steady,0.25,,,,,,1e-6,20,steady V = 0.25 u_avg (phi = 14 deg at u_avg)
+B_ar1_osc200k_v0.5,B,1e-6,1,osc,0.15,200000,4e-4,40,09:00:00,steady,0.5,,,,,,1e-6,20,steady V = 0.5 u_avg (phi = 27 deg at u_avg)
+B_ar1_osc200k_v1,B,1e-6,1,osc,0.15,200000,4e-4,40,10:00:00,steady,1,,,,,,1e-6,20,steady V = 1 u_avg (phi = 45 deg at u_avg)
+B_ar1_osc200k_v2,B,1e-6,1,osc,0.15,200000,4e-4,40,12:00:00,steady,2,,,,,,1e-6,20,steady V = 2 u_avg (phi = 63 deg at u_avg)
+Bf_ar1_osc200k_v0.5,Bf,1e-6,1,osc,0.15,200000,4e-4,40,11:00:00,follow,0.5,,,,,,1e-6,20,V = 0.5 U(t): fixed phi = 27 deg
+Bf_ar1_osc200k_v1,Bf,1e-6,1,osc,0.15,200000,4e-4,40,14:00:00,follow,1,,,,,,1e-6,20,V = 1 U(t): fixed phi = 45 deg
+B_ar1_steady_a15,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0.267949,,,,,,1e-6,20,"steady V = tan(15) u_avg: flow at 15 deg, U kept"
+Bf_ar1_osc200k_a15,Bf,1e-6,1,osc,0.15,200000,4e-4,40,09:00:00,follow,0.267949,,,,,,1e-6,20,"V = tan(15) U(t): flow at 15 deg, U kept"
+B_ar1_steady_a30,B,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,steady,0.57735,,,,,,1e-6,20,"steady V = tan(30) u_avg: flow at 30 deg, U kept"
+Bf_ar1_osc200k_a30,Bf,1e-6,1,osc,0.15,200000,4e-4,40,12:00:00,follow,0.57735,,,,,,1e-6,20,"V = tan(30) U(t): flow at 30 deg, U kept"
+B_ar1_steady_a60,B,1e-6,1,steady,0.15,0,4e-4,40,07:00:00,steady,1.73205,,,,,,1e-6,20,"steady V = tan(60) u_avg: flow at 60 deg, U kept"
+Bf_ar1_osc200k_a60,Bf,1e-6,1,osc,0.15,200000,4e-4,40,20:00:00,follow,1.73205,,,,,,1e-6,20,"V = tan(60) U(t): flow at 60 deg, U kept"
+B_ar1_steady_a75,B,1e-6,1,steady,0.15,0,4e-4,40,11:00:00,steady,3.73205,,,,,,1e-6,20,"steady V = tan(75) u_avg: flow at 75 deg, U kept"
+Bf_ar1_osc200k_a75,Bf,1e-6,1,osc,0.15,200000,4e-4,40,34:00:00,follow,3.73205,,,,,,1e-6,20,"V = tan(75) U(t): flow at 75 deg, U kept"
+C_ar1_osc200k_vp200k_ph0,C,1e-6,1,osc,0.15,200000,4e-4,40,11:00:00,pulse,0.5,200000,0,,,,1e-6,20,"pulsed V, mean 0.5 u_avg, in phase"
+C_ar1_osc200k_vp200k_ph180,C,1e-6,1,osc,0.15,200000,4e-4,40,11:00:00,pulse,0.5,200000,180,,,,1e-6,20,"pulsed V, mean 0.5 u_avg, anti-phase"
+C_ar1_osc200k_vp20k_ph0,C,1e-6,1,osc,0.15,200000,4e-4,40,11:00:00,pulse,0.5,20000,0,,,,1e-6,20,"pulsed V, mean 0.5 u_avg, 20 kHz"
+A_ar5_steady,A,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,none,,,,,,,1e-6,20,"baseline AR 5, steady rinse"
+B_ar5_steady_v0,B,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,steady,0,,,,,,1e-6,20,steady V = 0 u_avg (phi = 0 deg at u_avg)
+B_ar5_steady_v0.1,B,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,steady,0.1,,,,,,1e-6,20,steady V = 0.1 u_avg (phi = 6 deg at u_avg)
+B_ar5_steady_v0.25,B,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,steady,0.25,,,,,,1e-6,20,steady V = 0.25 u_avg (phi = 14 deg at u_avg)
+B_ar5_steady_v0.5,B,1e-6,5,steady,0.15,0,4e-4,40,05:00:00,steady,0.5,,,,,,1e-6,20,steady V = 0.5 u_avg (phi = 27 deg at u_avg)
+B_ar5_steady_v1,B,1e-6,5,steady,0.15,0,4e-4,40,06:00:00,steady,1,,,,,,1e-6,20,steady V = 1 u_avg (phi = 45 deg at u_avg)
+B_ar5_steady_v2,B,1e-6,5,steady,0.15,0,4e-4,40,09:00:00,steady,2,,,,,,1e-6,20,steady V = 2 u_avg (phi = 63 deg at u_avg)
+A_ar5_osc200k,A,1e-6,5,osc,0.15,200000,4e-4,40,09:00:00,none,,,,,,,1e-6,20,"baseline AR 5, osc200k rinse"
+B_ar5_osc200k_v0,B,1e-6,5,osc,0.15,200000,4e-4,40,09:00:00,steady,0,,,,,,1e-6,20,steady V = 0 u_avg (phi = 0 deg at u_avg)
+B_ar5_osc200k_v0.1,B,1e-6,5,osc,0.15,200000,4e-4,40,10:00:00,steady,0.1,,,,,,1e-6,20,steady V = 0.1 u_avg (phi = 6 deg at u_avg)
+B_ar5_osc200k_v0.25,B,1e-6,5,osc,0.15,200000,4e-4,40,10:00:00,steady,0.25,,,,,,1e-6,20,steady V = 0.25 u_avg (phi = 14 deg at u_avg)
+B_ar5_osc200k_v0.5,B,1e-6,5,osc,0.15,200000,4e-4,40,11:00:00,steady,0.5,,,,,,1e-6,20,steady V = 0.5 u_avg (phi = 27 deg at u_avg)
+B_ar5_osc200k_v1,B,1e-6,5,osc,0.15,200000,4e-4,40,12:00:00,steady,1,,,,,,1e-6,20,steady V = 1 u_avg (phi = 45 deg at u_avg)
+B_ar5_osc200k_v2,B,1e-6,5,osc,0.15,200000,4e-4,40,15:00:00,steady,2,,,,,,1e-6,20,steady V = 2 u_avg (phi = 63 deg at u_avg)
+Bf_ar5_osc200k_v0.5,Bf,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,follow,0.5,,,,,,1e-6,20,V = 0.5 U(t): fixed phi = 27 deg
+Bf_ar5_osc200k_v1,Bf,1e-6,5,osc,0.15,200000,4e-4,40,18:00:00,follow,1,,,,,,1e-6,20,V = 1 U(t): fixed phi = 45 deg
+B_ar5_steady_a15,B,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,steady,0.267949,,,,,,1e-6,20,"steady V = tan(15) u_avg: flow at 15 deg, U kept"
+Bf_ar5_osc200k_a15,Bf,1e-6,5,osc,0.15,200000,4e-4,40,12:00:00,follow,0.267949,,,,,,1e-6,20,"V = tan(15) U(t): flow at 15 deg, U kept"
+B_ar5_steady_a30,B,1e-6,5,steady,0.15,0,4e-4,40,05:00:00,steady,0.57735,,,,,,1e-6,20,"steady V = tan(30) u_avg: flow at 30 deg, U kept"
+Bf_ar5_osc200k_a30,Bf,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,follow,0.57735,,,,,,1e-6,20,"V = tan(30) U(t): flow at 30 deg, U kept"
+B_ar5_steady_a60,B,1e-6,5,steady,0.15,0,4e-4,40,08:00:00,steady,1.73205,,,,,,1e-6,20,"steady V = tan(60) u_avg: flow at 60 deg, U kept"
+Bf_ar5_osc200k_a60,Bf,1e-6,5,osc,0.15,200000,4e-4,40,24:00:00,follow,1.73205,,,,,,1e-6,20,"V = tan(60) U(t): flow at 60 deg, U kept"
+B_ar5_steady_a75,B,1e-6,5,steady,0.15,0,4e-4,40,14:00:00,steady,3.73205,,,,,,1e-6,20,"steady V = tan(75) u_avg: flow at 75 deg, U kept"
+Bf_ar5_osc200k_a75,Bf,1e-6,5,osc,0.15,200000,4e-4,40,42:00:00,follow,3.73205,,,,,,1e-6,20,"V = tan(75) U(t): flow at 75 deg, U kept"
+C_ar5_osc200k_vp200k_ph0,C,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,pulse,0.5,200000,0,,,,1e-6,20,"pulsed V, mean 0.5 u_avg, in phase"
+C_ar5_osc200k_vp200k_ph180,C,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,pulse,0.5,200000,180,,,,1e-6,20,"pulsed V, mean 0.5 u_avg, anti-phase"
+C_ar5_osc200k_vp20k_ph0,C,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,pulse,0.5,20000,0,,,,1e-6,20,"pulsed V, mean 0.5 u_avg, 20 kHz"
+V_ar5_osc200k_v0.5_dt,V,1e-6,5,osc,0.15,200000,4e-4,40,21:00:00,steady,0.5,,,,,0.5,1e-6,20,time-step check: B_ar5_osc200k_v0.5 with cfl 0.5
+V_ar5_osc200k_v0.5_n80,V,1e-6,5,osc,0.15,200000,4e-4,80,82:00:00,steady,0.5,,,,,,1e-6,20,mesh check: B_ar5_osc200k_v0.5 at 80 cells/W
+R_w1um_ar1_steady_a00,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,0,,,1e-6,20,"same speed, stream at 0 deg from the wafer"
+R_w1um_ar1_steady_a15,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,15,,,1e-6,20,"same speed, stream at 15 deg from the wafer"
+R_w1um_ar1_steady_a30,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,30,,,1e-6,20,"same speed, stream at 30 deg from the wafer"
+R_w1um_ar1_steady_a45,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,45,,,1e-6,20,"same speed, stream at 45 deg from the wafer"
+R_w1um_ar1_steady_a60,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,60,,,1e-6,20,"same speed, stream at 60 deg from the wafer"
+R_w1um_ar1_steady_a75,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,75,,,1e-6,20,"same speed, stream at 75 deg from the wafer"
+R_w1um_ar1_steady_a90,R,1e-6,1,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,90,,,1e-6,20,"same speed, stream at 90 deg from the wafer"
+R_w1um_ar5_steady_a00,R,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,0,,,1e-6,20,"same speed, stream at 0 deg from the wafer"
+R_w1um_ar5_steady_a15,R,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,15,,,1e-6,20,"same speed, stream at 15 deg from the wafer"
+R_w1um_ar5_steady_a30,R,1e-6,5,steady,0.15,0,4e-4,40,05:00:00,rotate,,,,30,,,1e-6,20,"same speed, stream at 30 deg from the wafer"
+R_w1um_ar5_steady_a45,R,1e-6,5,steady,0.15,0,4e-4,40,05:00:00,rotate,,,,45,,,1e-6,20,"same speed, stream at 45 deg from the wafer"
+R_w1um_ar5_steady_a60,R,1e-6,5,steady,0.15,0,4e-4,40,05:00:00,rotate,,,,60,,,1e-6,20,"same speed, stream at 60 deg from the wafer"
+R_w1um_ar5_steady_a75,R,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,75,,,1e-6,20,"same speed, stream at 75 deg from the wafer"
+R_w1um_ar5_steady_a90,R,1e-6,5,steady,0.15,0,4e-4,40,04:00:00,rotate,,,,90,,,1e-6,20,"same speed, stream at 90 deg from the wafer"
+R_w1um_ar1_osc200k_a00,R,1e-6,1,osc,0.15,200000,4e-4,40,09:00:00,rotate,,,,0,,,1e-6,20,"same speed, stream at 0 deg from the wafer"
+R_w1um_ar1_osc200k_a15,R,1e-6,1,osc,0.15,200000,4e-4,40,10:00:00,rotate,,,,15,,,1e-6,20,"same speed, stream at 15 deg from the wafer"
+R_w1um_ar1_osc200k_a30,R,1e-6,1,osc,0.15,200000,4e-4,40,12:00:00,rotate,,,,30,,,1e-6,20,"same speed, stream at 30 deg from the wafer"
+R_w1um_ar1_osc200k_a45,R,1e-6,1,osc,0.15,200000,4e-4,40,12:00:00,rotate,,,,45,,,1e-6,20,"same speed, stream at 45 deg from the wafer"
+R_w1um_ar1_osc200k_a60,R,1e-6,1,osc,0.15,200000,4e-4,40,12:00:00,rotate,,,,60,,,1e-6,20,"same speed, stream at 60 deg from the wafer"
+R_w1um_ar1_osc200k_a75,R,1e-6,1,osc,0.15,200000,4e-4,40,10:00:00,rotate,,,,75,,,1e-6,20,"same speed, stream at 75 deg from the wafer"
+R_w1um_ar1_osc200k_a90,R,1e-6,1,osc,0.15,200000,4e-4,40,09:00:00,rotate,,,,90,,,1e-6,20,"same speed, stream at 90 deg from the wafer"
+R_w1um_ar5_osc200k_a00,R,1e-6,5,osc,0.15,200000,4e-4,40,10:00:00,rotate,,,,0,,,1e-6,20,"same speed, stream at 0 deg from the wafer"
+R_w1um_ar5_osc200k_a15,R,1e-6,5,osc,0.15,200000,4e-4,40,13:00:00,rotate,,,,15,,,1e-6,20,"same speed, stream at 15 deg from the wafer"
+R_w1um_ar5_osc200k_a30,R,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,rotate,,,,30,,,1e-6,20,"same speed, stream at 30 deg from the wafer"
+R_w1um_ar5_osc200k_a45,R,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,rotate,,,,45,,,1e-6,20,"same speed, stream at 45 deg from the wafer"
+R_w1um_ar5_osc200k_a60,R,1e-6,5,osc,0.15,200000,4e-4,40,14:00:00,rotate,,,,60,,,1e-6,20,"same speed, stream at 60 deg from the wafer"
+R_w1um_ar5_osc200k_a75,R,1e-6,5,osc,0.15,200000,4e-4,40,13:00:00,rotate,,,,75,,,1e-6,20,"same speed, stream at 75 deg from the wafer"
+R_w1um_ar5_osc200k_a90,R,1e-6,5,osc,0.15,200000,4e-4,40,10:00:00,rotate,,,,90,,,1e-6,20,"same speed, stream at 90 deg from the wafer"
+R_w100um_ar5_steady_a00,R,1e-4,5,steady,0.15,0,0.1,40,08:00:00,rotate,,,,0,,,1e-6,20,"same speed, stream at 0 deg from the wafer"
+R_w100um_ar5_steady_a15,R,1e-4,5,steady,0.15,0,0.1,40,10:00:00,rotate,,,,15,,,1e-6,20,"same speed, stream at 15 deg from the wafer"
+R_w100um_ar5_steady_a30,R,1e-4,5,steady,0.15,0,0.1,40,11:00:00,rotate,,,,30,,,1e-6,20,"same speed, stream at 30 deg from the wafer"
+R_w100um_ar5_steady_a45,R,1e-4,5,steady,0.15,0,0.1,40,12:00:00,rotate,,,,45,,,1e-6,20,"same speed, stream at 45 deg from the wafer"
+R_w100um_ar5_steady_a60,R,1e-4,5,steady,0.15,0,0.1,40,11:00:00,rotate,,,,60,,,1e-6,20,"same speed, stream at 60 deg from the wafer"
+R_w100um_ar5_steady_a75,R,1e-4,5,steady,0.15,0,0.1,40,10:00:00,rotate,,,,75,,,1e-6,20,"same speed, stream at 75 deg from the wafer"
+R_w100um_ar5_steady_a90,R,1e-4,5,steady,0.15,0,0.1,40,08:00:00,rotate,,,,90,,,1e-6,20,"same speed, stream at 90 deg from the wafer"

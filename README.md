@@ -32,7 +32,7 @@ The original project is not modified. Case A here re-runs its baseline with the 
 | `trenchflow/mesh.py` | 2D Fluent mesh, copied from the baseline; `--top-type symmetry/velocity-inlet` |
 | `trenchflow/physics.py` | case plans, U/V expressions, angle convention, acoustic scales, Sherwood number (pure Python) |
 | `trenchflow/fluent.py` | Fluent setup (baseline code + velocity-component inlets + balance reports) |
-| `make_cases.py` → `cases.csv` | the 68-case matrix (edit the script, not the CSV) |
+| `make_cases.py` → `cases.csv` | the 92-case matrix (edit the script, not the CSV) |
 | `run_case.py`, `run_case.slurm`, `submit_cases.sh` | run one case / SLURM job with auto-continuation / submit by pattern |
 | `check_runs.sh`, `iter_stats.sh` | run status; iterations per time step |
 | `analyze.py` | figures + CSV data + `results/analysis/verification.md` |
@@ -82,3 +82,16 @@ cd ~/3d_nand_2 && source ~/venvs/pyfluent241/bin/activate && python analyze.py &
 | V/u_avg | 0–2 | sensitivity range (no source) |
 | Megasonic f, pressure | 1 MHz; 27–69 kPa, plus 172 kPa (1 W/cm²) as an upper bound | Paper B (Case D) |
 | θ sweep | 0–90° in 15° steps, constant incident intensity | Case D plan |
+
+## Comparison study at one pulse frequency (200 kHz)
+
+For W = 1 µm, AR 1 and AR 5, `analyze.py` also writes:
+- `flow_type_comparison_ar*.png`: U only (steady, pulsed); U + V steady; V = 0.5·U(t); V pulsed
+  (in phase, anti-phase, 20 kHz); best tilt angle (steady, pulsed). Every mixing metric, including the
+  lower half of the trench.
+- `angle_comparison_ar*.png`: the flow angle made two ways at 0–90°. Adding V = tan φ·U to the full rinse
+  (more flow) vs tilting at the same speed (Case R, the equivalent of tilting the wafer or nozzle with the
+  same pump flow). Steady and pulsed, with U-only reference lines.
+
+All cases except `A0` split the trench into upper/lower halves. This adds report zones only; `A0` vs
+`A_ar1_osc200k` checks that the physics is unchanged.

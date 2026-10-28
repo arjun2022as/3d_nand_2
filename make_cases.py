@@ -9,7 +9,11 @@ Families (W = 1 um, AR 1 and AR 5, t_end = 0.4 ms, 40 cells/W, residuals 1e-6, C
   V   verification: time step halved (cfl 0.5) and mesh doubled (80 cells/W) for one B case
   R   angle sweep at CONSTANT speed: whole stream enters through the top at phi = 0..90 deg,
       (u, v) = S(t) (cos phi, -sin phi); both sides open, trench centred and split upper/lower.
-      Geometries: 1 um AR 1 and AR 5 (0.4 ms), 100 um AR 5 (0.1 s, convection-dominated).
+      Geometries: 1 um AR 1 and AR 5 (0.4 ms, steady and 200 kHz), 100 um AR 5 (0.1 s, convection-dominated).
+  A0  exact copy of the original baseline mesh (no trench split) for the reproduction check.
+All other cases split the trench into upper/lower halves (report zones only) for the deep-mixing metric.
+Comparison grid at the angles 15/30/45/60/75 deg: steady V = tan(phi) u_avg (B, steady rinse) and
+V = tan(phi) U(t) (Bf, 200 kHz) against the constant-speed rotation R at the same angles.
 Walltimes: 2.5 x estimate from the measured cost of conv_f20k_n40tight (2.8 h, 7540 steps, 25 600 cells).
 """
 import csv
@@ -20,20 +24,21 @@ from trenchflow.physics import plan
 
 HERE = Path(__file__).resolve().parent
 COLS = ["case", "family", "W_m", "AR", "mode", "u_avg_m_s", "freq_Hz", "t_end_s", "n_per_w", "walltime",
-        "v_mode", "v_ratio", "v_freq_Hz", "v_phase_deg", "angle_deg", "cfl", "res_tol", "iters", "note"]
+        "v_mode", "v_ratio", "v_freq_Hz", "v_phase_deg", "angle_deg", "split", "cfl", "res_tol", "iters", "note"]
 RINSE = {"steady": ("steady", 0), "osc200k": ("osc", 200000)}
 
 
 def row(case, family, ar, rinse, note, v_mode="none", lam="", f_v="", phase="", n=40, cfl="",
-        W="1e-6", t_end="4e-4", angle=""):
+        W="1e-6", t_end="4e-4", angle="", split=""):
     mode, f = RINSE[rinse]
     return dict(case=case, family=family, W_m=W, AR=ar, mode=mode, u_avg_m_s="0.15", freq_Hz=f,
                 t_end_s=t_end, n_per_w=n, walltime="", v_mode=v_mode, v_ratio=lam, v_freq_Hz=f_v,
-                v_phase_deg=phase, angle_deg=angle, cfl=cfl, res_tol="1e-6", iters="20", note=note)
+                v_phase_deg=phase, angle_deg=angle, split=split, cfl=cfl, res_tol="1e-6", iters="20", note=note)
 
 
 def rows():
-    out = []
+    out = [row("A0_ar1_osc200k", "A0", 1, "osc200k", "original baseline mesh (no split): reproduction check",
+               split="0")]
     for ar in (1, 5):
         g = f"ar{ar}"
         for rinse in RINSE:
@@ -45,6 +50,12 @@ def rows():
         for lam in (0.5, 1):
             out.append(row(f"Bf_{g}_osc200k_v{lam:g}", "Bf", ar, "osc200k",
                            f"V = {lam:g} U(t): fixed phi = {math.degrees(math.atan(lam)):.0f} deg", "follow", lam))
+        for ang in (15, 30, 60, 75):             # 45 deg = lambda 1, already above
+            lam = f"{math.tan(math.radians(ang)):.6g}"
+            out.append(row(f"B_{g}_steady_a{ang:02d}", "B", ar, "steady",
+                           f"steady V = tan({ang}) u_avg: flow at {ang} deg, U kept", "steady", lam))
+            out.append(row(f"Bf_{g}_osc200k_a{ang:02d}", "Bf", ar, "osc200k",
+                           f"V = tan({ang}) U(t): flow at {ang} deg, U kept", "follow", lam))
         for f_v, ph, txt in ((200000, 0, "in phase"), (200000, 180, "anti-phase"), (20000, 0, "20 kHz")):
             out.append(row(f"C_{g}_osc200k_vp{f_v // 1000}k_ph{ph}", "C", ar, "osc200k",
                            f"pulsed V, mean 0.5 u_avg, {txt}", "pulse", 0.5, f_v, ph))
@@ -53,7 +64,8 @@ def rows():
     out.append(row("V_ar5_osc200k_v0.5_n80", "V", 5, "osc200k", "mesh check: B_ar5_osc200k_v0.5 at 80 cells/W",
                    "steady", 0.5, n=80))
     for W, wtag, ar, rinse, t_end in (("1e-6", "w1um", 1, "steady", "4e-4"), ("1e-6", "w1um", 5, "steady", "4e-4"),
-                                      ("1e-6", "w1um", 5, "osc200k", "4e-4"), ("1e-4", "w100um", 5, "steady", "0.1")):
+                                      ("1e-6", "w1um", 1, "osc200k", "4e-4"), ("1e-6", "w1um", 5, "osc200k", "4e-4"),
+                                      ("1e-4", "w100um", 5, "steady", "0.1")):
         for ang in (0, 15, 30, 45, 60, 75, 90):
             out.append(row(f"R_{wtag}_ar{ar}_{rinse}_a{ang:02d}", "R", ar, rinse,
                            f"same speed, stream at {ang} deg from the wafer", "rotate",

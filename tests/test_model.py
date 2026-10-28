@@ -81,7 +81,12 @@ def test_case_a_plan_identical_to_baseline_fig4_f200k():
     sys.path.insert(0, str(BASELINE))
     spec.loader.exec_module(orig)
     base = orig.plan(orig.load_case("fig4_f200k"), 20, 2000, 1.0)
-    new = plan(row_by("A_ar1_osc200k"))
+    new = plan(row_by("A0_ar1_osc200k"))
+    assert new["split_cavity"] is False and new["cavity_zones"] == ["cavity"]   # original mesh exactly
+    split = plan(row_by("A_ar1_osc200k"))                                        # same physics, split zones
+    for k in ("dt", "n_steps", "u_expr", "top_type", "left_type", "Lu_W", "Ld_W"):
+        assert split[k] == new[k]
+    assert split["cavity_zones"] == ["cavity", "cavity-lower"]
     for k in ("dt", "n_steps", "Us", "Up", "St"):
         assert new[k] == pytest.approx(base[k], rel=1e-12)
     assert new["u_expr"] == base["inlet_expr"]
@@ -166,7 +171,9 @@ def test_case_table_consistent():
         assert p["n_steps"] > 0 and p["dt"] > 0
         h, m, s = (int(x) for x in r["walltime"].split(":"))
         assert h <= 240
-        assert (p["v_mode"] == "none") == (r["family"] == "A")
+        assert (p["v_mode"] == "none") == (r["family"] in ("A", "A0"))
+        if r["case"].endswith(("_a15", "_a30", "_a45", "_a60", "_a75")):   # angle grid matches its name
+            assert p["phi_deg"] == pytest.approx(float(r["case"][-2:]), abs=1e-4)
 
 
 # ---------------------------------------------------------------- acoustic conventions and scales
