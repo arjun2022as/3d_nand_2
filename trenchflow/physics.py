@@ -24,7 +24,12 @@ RHO, MU, DIFF = 998.2, 1.003e-3, 6e-9     # water; contaminant diffusivity (from
 C_SOUND = 1480.0                          # m/s, water
 NU = MU / RHO
 
-V_MODES = ("none", "steady", "follow", "pulse")
+V_MODES = ("none", "steady", "follow", "pulse", "rotate")
+# Case R ("rotate"): the far-field stream enters ONLY through the top at angle phi from the wafer,
+#   (u, v) = S(t) * (cos phi, -sin phi), S(t) = the original rinse waveform (same speed at every angle).
+#   Both sides are open pressure outlets and the trench is centred (Lu = Ld = 3W), so at phi = 90 deg the
+#   flow can split both ways instead of being forced to one side. The trench is split into upper/lower
+#   halves so mixing in the deep part can be measured separately.
 
 
 # ---------------------------------------------------------------- waveforms
@@ -83,8 +88,22 @@ def plan(row, steps_per_period=20, min_steps=2000, cfl=1.0, res_tol=1e-6):
     lam = _num(row, "v_ratio", 0.0)
     f_v = _num(row, "v_freq_Hz", 0.0)
     phase = math.radians(_num(row, "v_phase_deg", 0.0))
-    if v_mode == "none":
-        v_expr, v_max, v_mean = None, 0.0, 0.0
+    phi = None
+    if v_mode == "rotate":
+        phi = _num(row, "angle_deg", float("nan"))
+        if not 0 <= phi <= 90:
+            raise SystemExit("v_mode 'rotate' needs angle_deg between 0 and 90")
+        c, s = math.cos(math.radians(phi)), math.sin(math.radians(phi))
+        c, s = (0.0 if abs(c) < 1e-12 else c), (0.0 if abs(s) < 1e-12 else s)
+        top_u, top_v = f"{c:.10g} * u_in", f"-{s:.10g} * u_in"
+        v_expr, v_max, v_mean = None, s * u_max, s * u_avg
+        u_scale = (c + s) * u_max          # |u| + |v| for the Courant limit
+    else:
+        top_u, top_v = "u_in", "-v_amp"
+        u_scale = None
+    if v_mode in ("none", "rotate"):
+        if v_mode == "none":
+            v_expr, v_max, v_mean = None, 0.0, 0.0
     elif v_mode == "steady":
         v_expr, v_max, v_mean = f"{lam * u_avg:.6g} [m/s]", lam * u_avg, lam * u_avg
     elif v_mode == "follow":   # constant ratio V/U: the imposed flow keeps a fixed approach angle
@@ -99,16 +118,31 @@ def plan(row, steps_per_period=20, min_steps=2000, cfl=1.0, res_tol=1e-6):
     if v_mode != "none" and lam < 0:
         raise SystemExit("v_ratio must be >= 0 (V is the speed toward the wafer)")
 
-    dt = min([t_end / min_steps, cfl * h / (u_max + v_max)] + [T / steps_per_period for T in periods])
+    dt = min([t_end / min_steps, cfl * h / (u_scale or (u_max + v_max))]
+             + [T / steps_per_period for T in periods])
     n_steps = math.ceil(t_end / dt)
     dt = t_end / n_steps
+    rotate = v_mode == "rotate"
+    if phi is None and v_mode in ("steady", "follow"):
+        phi = math.degrees(math.atan(lam))
     return dict(W=W, AR=AR, H=H, n_per_w=n, h=h, u_avg=u_avg, Us=Us, Up=Up, freq=f, St=St,
                 t_end=t_end, dt=dt, n_steps=n_steps, u_expr=u_expr,
                 v_mode=v_mode, v_ratio=lam, v_freq=f_v, v_phase_deg=math.degrees(phase), v_expr=v_expr,
-                v_max=v_max, v_mean=v_mean, phi_deg=math.degrees(math.atan(lam)) if v_mode in ("steady", "follow") else None,
+                v_max=v_max, v_mean=v_mean, phi_deg=phi, top_u=top_u, top_v=top_v,
                 top_type="symmetry" if v_mode == "none" else "velocity-inlet",
+                left_type="pressure-outlet" if rotate else "velocity-inlet",
+                Lu_W=3.0 if rotate else 2.0, Ld_W=3.0, split_cavity=rotate,
+                cavity_zones=["cavity", "cavity-lower"] if rotate else ["cavity"],
                 cfl=cfl, res_tol=res_tol, iters=iters,
                 Re=RHO * u_avg * W / MU, Pe_table1=W * 0.1 * u_avg / DIFF)
+
+
+def mesh_args(p, out):
+    """Command-line arguments for trenchflow.mesh for a plan p."""
+    a = ["--W", str(p["W"]), "--AR", str(p["AR"]), "--n-per-w", str(p["n_per_w"]),
+         "--Lu", str(p["Lu_W"]), "--Ld", str(p["Ld_W"]),
+         "--top-type", p["top_type"], "--left-type", p["left_type"], "-o", str(out)]
+    return a + (["--split-cavity"] if p["split_cavity"] else [])
 
 
 def inlet_v_expr(H):

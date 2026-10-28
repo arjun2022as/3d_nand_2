@@ -55,12 +55,18 @@ def balance(h, p):
     W, D, H = p["W"], p["W"] * p["AR"], p["H"]
     area = (mesh.get("Lu", 2 * W) + W + mesh.get("Ld", 3 * W)) * H + W * D
     mdots = [k for k in h[0] if k.startswith("mdot_")]
-    imb = max(abs(sum(r[k] for k in mdots)) / max(abs(r["mdot_outlet"]), 1e-30) for r in h[1:])
+    outs = [k[2:] for k in h[0] if k.startswith("y_") and f"mdot_{k[2:]}" in h[0]]   # outflow boundaries
+    scale = [max(sum(abs(r[k]) for k in mdots) / 2, 1e-30) for r in h]              # total through-flow
+    imb = max(abs(sum(r[k] for k in mdots)) / sc for r, sc in zip(h[1:], scale[1:]))
     m0 = RHO * W * D                                   # cavity full at mass fraction 1
     m_dom = [RHO * area * r["c_domain"] for r in h]
     out_int, removed = 0.0, []
+
+    def flux(r):   # contaminant leaving through every outflow boundary (outflow counted positive)
+        return sum(max(r[f"mdot_{b}"], 0.0) * r[f"y_{b}"] for b in outs)
+
     for a, b in zip(h, h[1:]):                         # trapezoid on the sampled outflow
-        fa, fb = a["mdot_outlet"] * a["y_outlet"], b["mdot_outlet"] * b["y_outlet"]
+        fa, fb = flux(a), flux(b)
         out_int += 0.5 * (fa + fb) * (b["time_s"] - a["time_s"])
         removed.append((m0 - RHO * area * b["c_domain"], out_int))
     lost, flowed = removed[-1]
@@ -96,7 +102,7 @@ def verification(cs):
               "|---|---|---|---|---|---|"]
     for name in cs:
         h, p = run(name)
-        if not h or "mdot_outlet" not in h[0]:
+        if not h or not any(k.startswith("mdot_") for k in h[0]):
             continue
         bl = balance(h, p)
         lines.append(f"| {name} | {bl['mass_imbalance_max']:.1e} | {bl['initial_inventory_error']:.1e} | "
@@ -203,6 +209,95 @@ def figures(cs, plt):
         plt.close(fig)
 
 
+ANGLE_METRICS = (   # (key, label, larger is better)
+    ("eta", "Cleaning efficiency at t_end (%)", True),
+    ("eta_deep", "Lower-half trench cleaned at t_end (%)", True),
+    ("sh", "Mean trench Sherwood number", True),
+    ("u_cav", "Mean speed inside trench (m/s)", True),
+    ("u_deep", "Mean speed in lower half (m/s)", True),
+    ("segregation", "Peak / mean concentration in trench (1 = uniform)", False),
+)
+
+
+def angle_metrics(h, p):
+    """Mixing metrics of one run: removal, deep removal, exchange rate, stirring, uniformity."""
+    t = [x["time_s"] for x in h]
+    R = [x["c_cavity"] for x in h]
+    sh = sherwood(t, R, p["W"] * p["AR"], p["W"])
+
+    def tavg(key):   # time average over the run (trapezoid)
+        v = [x[key] for x in h]
+        return sum(0.5 * (v[i] + v[i + 1]) * (t[i + 1] - t[i]) for i in range(len(t) - 1)) / (t[-1] - t[0])
+
+    seg = [x["y_max_cav"] / x["c_cavity"] for x in h if x["c_cavity"] > 1e-12]
+    return dict(eta=100 * (1 - R[-1]),
+                eta_deep=100 * (1 - h[-1]["c_deep"]) if "c_deep" in h[-1] else float("nan"),
+                sh=sum(v for _, v in sh) / len(sh) if sh else float("nan"),
+                u_cav=tavg("u_cav") if "u_cav" in h[0] else float("nan"),
+                u_deep=tavg("u_deep") if "u_deep" in h[0] else float("nan"),
+                segregation=sum(seg) / len(seg) if seg else float("nan"))
+
+
+def optimum(angles, values, maximize=True):
+    """Best sampled angle and a parabola-refined estimate through it and its two neighbours."""
+    pts = [(a, v) for a, v in zip(angles, values) if v == v]
+    if len(pts) < 3:
+        return None, None
+    pts.sort()
+    i = max(range(len(pts)), key=lambda k: pts[k][1] if maximize else -pts[k][1])
+    best = pts[i][0]
+    if 0 < i < len(pts) - 1:
+        (a0, v0), (a1, v1), (a2, v2) = pts[i - 1], pts[i], pts[i + 1]
+        den = (a0 - a1) * (a0 - a2) * (a1 - a2)
+        A = (a2 * (v1 - v0) + a1 * (v0 - v2) + a0 * (v2 - v1)) / den
+        B = (a2 * a2 * (v0 - v1) + a1 * a1 * (v2 - v0) + a0 * a0 * (v1 - v2)) / den
+        if A != 0:
+            return best, min(max(-B / (2 * A), a0), a2)
+    return best, float(best)    # optimum at an end of the sweep: no interior estimate
+
+
+def angle_sweep(cs, plt):
+    """Case R: every mixing metric vs stream angle, per geometry, with the optimum angle."""
+    series = {}
+    for name, r in cs.items():
+        if r["family"] != "R":
+            continue
+        h, p = run(name)
+        if h:
+            series.setdefault(name.rsplit("_a", 1)[0], []).append((float(r["angle_deg"]), angle_metrics(h, p)))
+    if not series:
+        return
+    fig, axes = plt.subplots(2, 3, figsize=(15, 8.5))
+    rows, best_rows = [], []
+    for geom, pts in sorted(series.items()):
+        pts.sort(key=lambda x: x[0])
+        angles = [a for a, _ in pts]
+        for ax, (key, lab, big) in zip(axes.flat, ANGLE_METRICS):
+            vals = [m[key] for _, m in pts]
+            if all(v != v for v in vals):
+                continue
+            line, = ax.plot(angles, vals, "o-", label=geom.replace("R_", ""))
+            best, est = optimum(angles, vals, big)
+            if best is not None:
+                ax.axvline(est, color=line.get_color(), ls=":", lw=1)
+                best_rows.append((geom, key, best, round(est, 1)))
+            ax.set(xlabel="Stream angle from wafer (deg)", ylabel=lab, xticks=range(0, 91, 15))
+            if key in ("u_cav", "u_deep", "sh"):
+                ax.set_yscale("log")
+        rows += [(geom, a, *[m[k] for k, _, _ in ANGLE_METRICS]) for a, m in pts]
+    axes.flat[0].legend(fontsize=8)
+    fig.suptitle("Case R: same speed, stream rotated from parallel (0 deg) to normal (90 deg); "
+                 "dotted = estimated optimum. Imposed flow, not an acoustic calculation.", fontsize=10)
+    save(fig, "angle_sweep", ["geometry", "angle_deg"] + [k for k, _, _ in ANGLE_METRICS], rows)
+    with open(OUT / "angle_optimum.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["geometry", "metric", "best_sampled_angle_deg", "parabola_estimate_deg"])
+        w.writerows(best_rows)
+    print("\noptimum stream angle (best sampled / parabola estimate):")
+    for g, k, b, e in best_rows:
+        print(f"  {g:28s} {k:12s} {b:5.0f} / {e:5.1f} deg")
+
+
 def save(fig, name, header, rows):
     fig.tight_layout()
     fig.savefig(OUT / f"{name}.png", dpi=150)
@@ -221,6 +316,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     cs = cases()
     figures(cs, plt)
+    angle_sweep(cs, plt)
     verification(cs)
 
 

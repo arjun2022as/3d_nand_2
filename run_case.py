@@ -23,7 +23,7 @@ from trenchflow import mesh  # noqa: E402
 from trenchflow.fluent import (EXIT_CONTINUE, checkpoint, initialize, iterate, launch, log,  # noqa: E402
                                parse_slurm_time, read_case_data, reports, setup, setv,
                                settings, truncate_history, write)
-from trenchflow.physics import CASES_CSV, load_case, plan  # noqa: E402
+from trenchflow.physics import CASES_CSV, load_case, mesh_args, plan  # noqa: E402
 
 
 def main():
@@ -74,8 +74,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     msh = out / f"{a.case}.msh"
     if not state:
-        p["mesh"] = mesh.main(["--W", str(p["W"]), "--AR", str(p["AR"]), "--n-per-w", str(p["n_per_w"]),
-                               "--top-type", p["top_type"], "-o", str(msh)])
+        p["mesh"] = mesh.main(mesh_args(p, msh))
 
     solver = launch(a.procs, out)
     t0 = time.time()
@@ -100,7 +99,7 @@ def main():
             mode = "a"
         else:
             names = setup(solver, msh.name, p)
-            initialize(solver)
+            initialize(solver, p["cavity_zones"])
             write(solver, "case-data", f"{a.case}-t0.cas.h5")
             done, mode = 0, "w"
 

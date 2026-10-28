@@ -109,6 +109,45 @@ def test_transverse_modes():
         assert min(evaluate(pu["u_expr"], t=t), evaluate(p["v_expr"], t=t)) == pytest.approx(0, abs=1e-9)
 
 
+def test_rotate_keeps_speed_and_sets_open_centred_domain():
+    for ang in (0, 15, 30, 45, 60, 75, 90):
+        p = plan(row_by(f"R_w1um_ar5_steady_a{ang:02d}"))
+        u = evaluate(p["top_u"], u_in=0.15)
+        v = evaluate(p["top_v"], u_in=0.15)
+        assert math.hypot(u, v) == pytest.approx(0.15)                  # same speed at every angle
+        assert math.degrees(math.atan2(-v, u)) == pytest.approx(ang)    # angle from the wafer surface
+        assert v <= 0                                                   # toward the wafer
+        assert p["left_type"] == "pressure-outlet" and p["split_cavity"]
+        assert p["Lu_W"] == p["Ld_W"] == 3.0                            # trench centred
+        assert p["cavity_zones"] == ["cavity", "cavity-lower"]
+    assert evaluate(plan(row_by("R_w1um_ar5_steady_a90"))["top_u"], u_in=0.15) == 0.0
+
+
+def test_rotate_mesh_has_open_left_and_split_trench(tmp_path):
+    from trenchflow.physics import mesh_args
+    p = plan(row_by("R_w1um_ar5_steady_a45"))
+    p["n_per_w"] = 8
+    out = tmp_path / "r.msh"
+    info = mesh.main(mesh_args(p, out))
+    text = out.read_text()
+    for zone in ("(45 (7 pressure-outlet left)())", "(45 (9 velocity-inlet top)())",
+                 "(45 (12 fluid cavity-lower)())", "(45 (13 interior cavity-split)())"):
+        assert zone in text
+    assert info["n_cavity_lower"] * 2 == info["n_cavity"]
+
+
+def test_optimum_finder_recovers_parabola_peak():
+    sys.path.insert(0, str(ROOT))
+    import analyze
+    angles = [0, 15, 30, 45, 60, 75, 90]
+    best, est = analyze.optimum(angles, [-(a - 37.0) ** 2 for a in angles], maximize=True)
+    assert best == 30 and est == pytest.approx(37.0)
+    best, est = analyze.optimum(angles, [(a - 52.0) ** 2 for a in angles], maximize=False)
+    assert best == 45 and est == pytest.approx(52.0)
+    best, est = analyze.optimum(angles, list(range(7)), maximize=True)   # monotonic: optimum at the end
+    assert best == 90 and est == 90
+
+
 def test_left_inlet_profile_matches_wall_and_top():
     H = 2.5e-6
     expr = inlet_v_expr(H)

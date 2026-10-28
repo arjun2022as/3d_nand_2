@@ -2,7 +2,10 @@
 """Write a 2D Fluent ASCII mesh (.msh) of a rinse channel over one rectangular trench.
 
 Copied from 3d_nand/ansys_busnaina/make_trench_mesh.py (commit 141e41b); the only change is
-the --top-type option: "symmetry" (baseline, Case A) or "velocity-inlet" (transverse inflow, Cases B/C).
+three options, all off by default so the baseline mesh is byte-identical:
+  --top-type      symmetry (baseline) | velocity-inlet (transverse inflow, Cases B/C/R)
+  --left-type     velocity-inlet named "inlet" (baseline) | pressure-outlet named "left" (open side, Case R)
+  --split-cavity  split the trench into "cavity" (upper half) and "cavity-lower" (lower half)
 
 Geometry follows Lin, Busnaina & Suni (2002), Fig. 1. y = 0 is the wafer surface.
 
@@ -39,12 +42,13 @@ FACE_ZONES = [  # (id, name, type) - written in this order, ids contiguous per z
     (9, "top", "symmetry"),
     (10, "wafer", "wall"),
     (11, "trench-walls", "wall"),
+    (13, "cavity-split", "interior"),      # only with --split-cavity (empty zones are not written)
 ]
-CELL_ZONES = [(2, "channel"), (3, "cavity")]
+CELL_ZONES = [(2, "channel"), (3, "cavity"), (12, "cavity-lower")]
 NODE_ZONE_ID = 1
 
 
-def build(W, D, H, Lu, Ld, n_per_w):
+def build(W, D, H, Lu, Ld, n_per_w, split_cavity=False):
     h = W / n_per_w
     nu, nw, nd = max(1, round(Lu / h)), n_per_w, max(1, round(Ld / h))
     nh, ndp = max(1, round(H / h)), max(1, round(D / h))
@@ -57,7 +61,9 @@ def build(W, D, H, Lu, Ld, n_per_w):
 
     # cells as lattice (i, j) of their lower-left corner; channel first, then cavity
     cells = [(i, j, 2) for j in range(ndp, ndp + nh) for i in range(NX)]
-    cells += [(i, j, 3) for j in range(ndp) for i in range(nu, nu + nw)]
+    j_split = ndp // 2 if split_cavity else 0          # rows below j_split form "cavity-lower"
+    cells += [(i, j, 3) for j in range(j_split, ndp) for i in range(nu, nu + nw)]
+    cells += [(i, j, 12) for j in range(j_split) for i in range(nu, nu + nw)]
 
     used = set()
     for i, j, _ in cells:
@@ -88,7 +94,8 @@ def build(W, D, H, Lu, Ld, n_per_w):
         p, q, c0, c1 = f
         if c1:
             z0, z1 = zone_of_cell[c0], zone_of_cell[c1]
-            by_zone[4 if z0 == z1 == 2 else 5 if z0 == z1 == 3 else 6].append(f)
+            pair = {z0, z1}
+            by_zone[4 if pair == {2} else 5 if pair in ({3}, {12}) else 13 if pair == {3, 12} else 6].append(f)
             continue
         xm = 0.5 * (nodes[p - 1][0] + nodes[q - 1][0])
         ym = 0.5 * (nodes[p - 1][1] + nodes[q - 1][1])
@@ -105,7 +112,8 @@ def build(W, D, H, Lu, Ld, n_per_w):
 
     info = dict(h=h, n_cells=len(cells), n_nodes=len(nodes), n_faces=len(faces),
                 n_channel=sum(1 for c in cells if c[2] == 2),
-                n_cavity=sum(1 for c in cells if c[2] == 3),
+                n_cavity=sum(1 for c in cells if c[2] in (3, 12)),
+                n_cavity_lower=sum(1 for c in cells if c[2] == 12),
                 cells_x=[nu, nw, nd], cells_y=[ndp, nh])
     return nodes, cells, xs, ys, by_zone, info
 
@@ -135,6 +143,8 @@ def check(nodes, cells, xs, ys, by_zone, W, D, H, Lu, Ld):
         return sum(abs(nodes[q - 1][0] - nodes[p - 1][0]) + abs(nodes[q - 1][1] - nodes[p - 1][1])
                    for p, q, _, _ in by_zone[zid])
     expect = {6: W, 7: H, 8: H, 9: Lu + W + Ld, 10: Lu + Ld, 11: 2 * D + W}
+    if by_zone[13]:
+        expect[13] = W
     for zid, L in expect.items():
         if abs(length(zid) - L) > 1e-9 * L:
             raise RuntimeError(f"zone {zid} length {length(zid)} != {L}")
@@ -145,10 +155,14 @@ def check(nodes, cells, xs, ys, by_zone, W, D, H, Lu, Ld):
         raise RuntimeError(f"area {area} != {expect_area}")
 
 
-def write_msh(path, nodes, cells, by_zone, title, top_type="symmetry"):
+def write_msh(path, nodes, cells, by_zone, title, top_type="symmetry", left_type="velocity-inlet"):
     nn, nc = len(nodes), len(cells)
     nf = sum(len(v) for v in by_zone.values())
-    nch = sum(1 for c in cells if c[2] == 2)
+    rename = {"top": ("top", top_type),
+              "inlet": ("inlet", "velocity-inlet") if left_type == "velocity-inlet" else ("left", left_type)}
+    faces = [(zid, *rename.get(name, (name, ztype))) for zid, name, ztype in FACE_ZONES if by_zone[zid]]
+    cell_zones = [(zid, name, sum(1 for c in cells if c[2] == zid)) for zid, name in CELL_ZONES]
+    cell_zones = [z for z in cell_zones if z[2]]
     with open(path, "w", newline="\n") as f:
         f.write(f'(0 "{title}")\n(2 2)\n')
         f.write(f"(10 (0 1 {nn:x} 0 2))\n(12 (0 1 {nc:x} 0))\n(13 (0 1 {nf:x} 0))\n")
@@ -157,12 +171,13 @@ def write_msh(path, nodes, cells, by_zone, title, top_type="symmetry"):
         f.writelines(f"{x:.15e} {y:.15e}\n" for x, y in nodes)
         f.write("))\n")
 
-        f.write(f"(12 (2 1 {nch:x} 1 3))\n")
-        f.write(f"(12 (3 {nch + 1:x} {nc:x} 1 3))\n")
+        first = 1
+        for zid, _, count in cell_zones:          # cells are stored zone by zone (see build)
+            f.write(f"(12 ({zid:x} {first:x} {first + count - 1:x} 1 3))\n")
+            first += count
 
         first = 1
-        for zid, name, ztype in FACE_ZONES:
-            ztype = top_type if name == "top" else ztype
+        for zid, name, ztype in faces:
             flist = by_zone[zid]
             last = first + len(flist) - 1
             f.write(f"(13 ({zid:x} {first:x} {last:x} {BC[ztype]:x} 2)(\n")
@@ -170,10 +185,9 @@ def write_msh(path, nodes, cells, by_zone, title, top_type="symmetry"):
             f.write("))\n")
             first = last + 1
 
-        for zid, name in CELL_ZONES:
+        for zid, name, _ in cell_zones:
             f.write(f"(45 ({zid} fluid {name})())\n")
-        for zid, name, ztype in FACE_ZONES:
-            ztype = top_type if name == "top" else ztype
+        for zid, name, ztype in faces:
             f.write(f"(45 ({zid} {ztype} {name})())\n")
 
 
@@ -187,16 +201,20 @@ def main(argv=None):
     ap.add_argument("--n-per-w", type=int, default=40, help="cells across the trench width")
     ap.add_argument("--top-type", choices=["symmetry", "velocity-inlet"], default="symmetry",
                     help="top boundary: symmetry (baseline) or velocity-inlet (transverse inflow)")
+    ap.add_argument("--left-type", choices=["velocity-inlet", "pressure-outlet"], default="velocity-inlet",
+                    help="left boundary: velocity inlet 'inlet' (baseline) or open pressure outlet 'left'")
+    ap.add_argument("--split-cavity", action="store_true", help="separate upper/lower trench cell zones")
     ap.add_argument("-o", "--out", required=True, help="output .msh path")
     a = ap.parse_args(argv)
 
     W = a.W
     D, H, Lu, Ld = a.AR * W, a.H * W, a.Lu * W, a.Ld * W
-    nodes, cells, xs, ys, by_zone, info = build(W, D, H, Lu, Ld, a.n_per_w)
+    nodes, cells, xs, ys, by_zone, info = build(W, D, H, Lu, Ld, a.n_per_w, a.split_cavity)
     check(nodes, cells, xs, ys, by_zone, W, D, H, Lu, Ld)
     title = f"Trench W={W:g} m D={D:g} m H={H:g} m, {a.n_per_w} cells/W"
-    write_msh(a.out, nodes, cells, by_zone, title, a.top_type)
-    info.update(W=W, D=D, H=H, Lu=Lu, Ld=Ld, msh=a.out, top_type=a.top_type)
+    write_msh(a.out, nodes, cells, by_zone, title, a.top_type, a.left_type)
+    info.update(W=W, D=D, H=H, Lu=Lu, Ld=Ld, msh=a.out, top_type=a.top_type,
+                left_type=a.left_type, split_cavity=a.split_cavity)
     print(json.dumps(info))
     return info
 

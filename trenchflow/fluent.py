@@ -207,6 +207,13 @@ def setup(solver, msh, p):
     log("u_in =", ne["u_in"].definition())
     if p["v_mode"] == "none":
         set_inlet_magnitude(s, "inlet", "u_in")                     # Case A: unchanged baseline
+    elif p["v_mode"] == "rotate":
+        # Case R: the whole far-field stream enters through the top at angle phi; sides are open
+        ne["u_top"] = {"definition": p["top_u"]}
+        ne["v_top"] = {"definition": p["top_v"]}
+        for n_ in ("u_top", "v_top"):
+            log(f"{n_} =", ne[n_].definition())
+        set_inlet_components(s, "top", "u_top", "v_top")
     else:
         ne["v_amp"] = {"definition": p["v_expr"]}                   # V(t) >= 0, toward the wafer
         ne["v_left"] = {"definition": inlet_v_expr(p["H"])}         # 0 at wafer -> -V at top corner
@@ -222,19 +229,32 @@ def setup(solver, msh, p):
     except Exception as e:  # noqa: BLE001
         log("PISO not set, keeping default:", e)
 
-    # ---- reports: cleaning metric + verification quantities
-    add_volume_report(s, "c_cavity", ("volume-average",), TRACER, ["cavity"])
-    add_volume_report(s, "rho_avg", ("volume-average",), "density", ["channel", "cavity"])
-    add_volume_report(s, "c_domain", ("volume-average",), TRACER, ["channel", "cavity"])
-    add_volume_report(s, "y_max", ("volume-max", "volume-maximum"), TRACER, ["channel", "cavity"])
-    add_volume_report(s, "y_min", ("volume-min", "volume-minimum"), TRACER, ["channel", "cavity"])
-    inflow = ["inlet"] + ([] if p["v_mode"] == "none" else ["top"])
-    names = ["c_cavity", "c_domain", "y_min", "y_max"]
-    for b in inflow + ["outlet"]:
+    # ---- reports: cleaning metric, in-trench mixing, verification quantities
+    cav = p["cavity_zones"]
+    fluid = ["channel"] + cav
+    add_volume_report(s, "c_cavity", ("volume-average",), TRACER, cav)
+    add_volume_report(s, "rho_avg", ("volume-average",), "density", fluid)
+    add_volume_report(s, "c_domain", ("volume-average",), TRACER, fluid)
+    add_volume_report(s, "y_max", ("volume-max", "volume-maximum"), TRACER, fluid)
+    add_volume_report(s, "y_min", ("volume-min", "volume-minimum"), TRACER, fluid)
+    add_volume_report(s, "y_max_cav", ("volume-max", "volume-maximum"), TRACER, cav)       # peak left in trench
+    add_volume_report(s, "u_cav", ("volume-average",), "velocity-magnitude", cav)          # in-trench stirring
+    names = ["c_cavity", "c_domain", "y_min", "y_max", "y_max_cav", "u_cav"]
+    if "cavity-lower" in cav:
+        add_volume_report(s, "c_deep", ("volume-average",), TRACER, ["cavity-lower"])     # lower half
+        add_volume_report(s, "u_deep", ("volume-average",), "velocity-magnitude", ["cavity-lower"])
+        names += ["c_deep", "u_deep"]
+    if p["v_mode"] == "rotate":
+        boundaries, outflows = ["top", "left", "outlet"], ["left", "outlet"]
+    else:
+        boundaries = ["inlet"] + ([] if p["v_mode"] == "none" else ["top"]) + ["outlet"]
+        outflows = ["outlet"]
+    for b in boundaries:
         add_surface_report(s, f"mdot_{b}", ("surface-massflowrate", "mass-flow-rate"), [b])
         names.append(f"mdot_{b}")
-    add_surface_report(s, "y_outlet", ("surface-massavg", "mass-weighted-avg"), ["outlet"], TRACER)
-    names.append("y_outlet")
+    for b in outflows:
+        add_surface_report(s, f"y_{b}", ("surface-massavg", "mass-weighted-avg"), [b], TRACER)
+        names.append(f"y_{b}")
 
     try:   # every time step, for the contaminant balance
         s.solution.monitor.report_files["reports_rfile"] = {
@@ -275,7 +295,7 @@ def reports(solver, names):
     return {n: scalar(s.solution.report_definitions.compute(report_defs=[n])) for n in names}
 
 
-def initialize(solver):
+def initialize(solver, cavity_zones=("cavity",)):
     s = settings(solver)
     ini = s.solution.initialization
     first_ok("standard initialization", lambda: ini.standard_initialize(), lambda: ini.initialize())
@@ -287,7 +307,7 @@ def initialize(solver):
         raise RuntimeError(f"cavity concentration after initialization is {r['c_cavity']}, expected 0")
     for var in ("species-0", "species-1", TRACER):
         try:
-            ini.patch.calculate_patch(cell_zones=["cavity"], variable=var, value=1.0)
+            ini.patch.calculate_patch(cell_zones=list(cavity_zones), variable=var, value=1.0)
         except Exception as e:  # noqa: BLE001
             log(f"patch {var}: {type(e).__name__}: {e}")
             continue
@@ -295,7 +315,7 @@ def initialize(solver):
         log(f"patch {var}: cavity {TRACER} = {c}")
         if abs(c - 1.0) < 1e-6:
             return
-        ini.patch.calculate_patch(cell_zones=["cavity"], variable=var, value=0.0)
+        ini.patch.calculate_patch(cell_zones=list(cavity_zones), variable=var, value=0.0)
     raise RuntimeError("could not patch contaminant into the cavity")
 
 

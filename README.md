@@ -13,6 +13,7 @@ The original project is not modified. Case A here re-runs its baseline with the 
 | A | Original baseline: rinse U(t), v = 0, symmetry top | Paper A | implemented; HPC runs pending |
 | B, Bf | + imposed transverse inflow V through the top (steady; or V = λU, fixed approach angle) | Level 1: **imposed flow** | implemented; HPC runs pending |
 | C | + pulsed V with its own frequency/phase | Level 1: **imposed flow** | implemented; HPC runs pending |
+| R | **angle sweep at constant speed**: whole stream from the top at φ = 0–90° in 15° steps, open sides, trench split upper/lower; finds the angle that maximizes in-trench mixing | Level 1: **imposed flow** | implemented; HPC runs pending |
 | D | Megasonic incidence angle θ → acoustic streaming force → flow | Level 3: perturbation acoustics | **designed, not implemented** (docs/formulation.md §7) |
 | E | Comparison and verification figures | – | `analyze.py` (tested on synthetic data) |
 
@@ -31,7 +32,7 @@ The original project is not modified. Case A here re-runs its baseline with the 
 | `trenchflow/mesh.py` | 2D Fluent mesh, copied from the baseline; `--top-type symmetry/velocity-inlet` |
 | `trenchflow/physics.py` | case plans, U/V expressions, angle convention, acoustic scales, Sherwood number (pure Python) |
 | `trenchflow/fluent.py` | Fluent setup (baseline code + velocity-component inlets + balance reports) |
-| `make_cases.py` → `cases.csv` | the 40-case matrix (edit the script, not the CSV) |
+| `make_cases.py` → `cases.csv` | the 68-case matrix (edit the script, not the CSV) |
 | `run_case.py`, `run_case.slurm`, `submit_cases.sh` | run one case / SLURM job with auto-continuation / submit by pattern |
 | `check_runs.sh`, `iter_stats.sh` | run status; iterations per time step |
 | `analyze.py` | figures + CSV data + `results/analysis/verification.md` |
@@ -55,6 +56,7 @@ bash submit_cases.sh '^A_'          # baselines (4 jobs)
 bash submit_cases.sh '^B_'          # steady transverse inflow (24 jobs)
 bash submit_cases.sh '^(Bf|C)_'     # fixed-angle and pulsed transverse inflow (10 jobs)
 bash submit_cases.sh '^V_'          # time-step and mesh checks (2 jobs)
+bash submit_cases.sh '^R_'          # angle sweep: 4 geometries x 7 angles (28 jobs, 1-6 h each)
 
 # 3. status, then figures + verification report (compute node, for matplotlib)
 bash check_runs.sh

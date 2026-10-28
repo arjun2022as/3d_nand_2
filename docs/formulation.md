@@ -68,6 +68,39 @@ sensitivity study**, idealized in the same way as the baseline. It doesn't predi
 In a real cleaner, the near-wall flow would be a stagnation/shear boundary layer far thicker than this
 domain (§6).
 
+## 3b. Case R: angle sweep at constant speed (finding the best approach angle)
+
+Goal: the stream angle phi that maximizes mixing **inside** the trench, with the amount of incoming flow
+held fixed so only the direction changes.
+
+| Boundary | Case R |
+|---|---|
+| Top y = H | velocity inlet, (u, v) = S(t)·(cos φ, −sin φ), with S(t) the original rinse waveform (steady 0.15 m/s or pulsed) |
+| Left x = −3W and right x = 4W | **open** pressure outlets (p = 0, backflow Y = 0); the flow leaves whichever way it turns |
+| Trench | centred (Lu = Ld = 3W), split into upper half `cavity` and lower half `cavity-lower` |
+
+At φ = 0 no fluid enters through the top. The top drags the liquid sideways (shear-driven, like a moving
+lid), so Case R's φ = 0 is not identical to Case A, which pushes the rinse through an inlet.
+At φ = 90° the stream hits the wafer straight on and splits both ways. Compare R cases with each other,
+not with A.
+
+Mixing metrics (`analyze.py`, `angle_sweep.png`, `angle_optimum.csv`):
+
+| Metric | Definition | Better |
+|---|---|---|
+| η | 1 − C̄_trench(t_end)/C̄_trench(0) | higher |
+| η_deep | 1 − C̄_lower half(t_end) | higher; the hard part of a high-aspect-ratio trench |
+| Sh | time-mean of −D_trench·d(ln R)/dt·W/D | higher |
+| u_cav, u_deep | time-mean volume-average speed in trench / lower half | higher = stronger stirring |
+| segregation | time-mean of Y_max,trench / C̄_trench | lower = more uniform |
+
+Optimum: best sampled angle per metric, refined by a parabola through it and its two neighbours. On a
+15° grid this is an estimate; a finer sweep around it is the next step.
+
+Geometries: W = 1 µm with AR 1 and AR 5 (diffusion-dominated, 0.4 ms), the same with 200 kHz pulsing,
+and W = 100 µm AR 5 (convection-dominated, 0.1 s). Different optima at the two scales would show which
+mechanism controls mixing.
+
 ## 4. Angles: two different quantities
 
 | Symbol | Definition | Used in |
