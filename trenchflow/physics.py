@@ -24,7 +24,12 @@ RHO, MU, DIFF = 998.2, 1.003e-3, 6e-9     # water; contaminant diffusivity (from
 C_SOUND = 1480.0                          # m/s, water
 NU = MU / RHO
 
-V_MODES = ("none", "steady", "follow", "pulse", "rotate")
+V_MODES = ("none", "steady", "follow", "pulse", "rotate", "shear")
+# Case S ("shear"): the trench sits in a linear near-wall shear flow u = G * y, v = 0 (the flow a trench
+#   actually sees inside the millimetre-thick boundary layer of a wafer-scale flow). Left inlet u = G y,
+#   top a velocity inlet (G H, 0), right outlet. A taller graded domain (H = 10 W) keeps the top far from
+#   the trench. G (shear_rate, 1/s) links the trench to the wafer-scale wall shear: G = tau_wall / mu.
+GRADE = dict(ratio=1.15, hmax=0.5, core_x=1.0, core_y=2.5)      # mesh grading used by Case S (units of W)
 # Case R ("rotate"): the far-field stream enters ONLY through the top at angle phi from the wafer,
 #   (u, v) = S(t) * (cos phi, -sin phi), S(t) = the original rinse waveform (same speed at every angle).
 #   Both sides are open pressure outlets and the trench is centred (Lu = Ld = 3W), so at phi = 90 deg the
@@ -65,10 +70,13 @@ def plan(row, steps_per_period=20, min_steps=2000, cfl=1.0, res_tol=1e-6):
     res_tol = _num(row, "res_tol", res_tol)
     iters = int(_num(row, "iters", 0)) or None
     W, AR, n = float(row["W_m"]), float(row["AR"]), int(row["n_per_w"])
-    H = 2.5 * W
+    H = _num(row, "H_W", 2.5) * W
     u_avg, f, t_end = float(row["u_avg_m_s"]), float(row["freq_Hz"]), float(row["t_end_s"])
     h = W / n
     periods = []
+    v_mode = (row.get("v_mode") or "none").strip()
+    if v_mode == "shear":
+        return _plan_shear(row, W, AR, n, H, h, t_end, min_steps, cfl, res_tol, iters)
 
     # rinse velocity U(t): identical to the baseline model
     if row["mode"] == "osc":
@@ -82,7 +90,6 @@ def plan(row, steps_per_period=20, min_steps=2000, cfl=1.0, res_tol=1e-6):
         u_max = u_avg
 
     # transverse velocity magnitude V(t) >= 0 (directed toward the wafer: v = -V)
-    v_mode = (row.get("v_mode") or "none").strip()
     if v_mode not in V_MODES:
         raise SystemExit(f"v_mode '{v_mode}' not one of {V_MODES}")
     lam = _num(row, "v_ratio", 0.0)
@@ -140,11 +147,41 @@ def plan(row, steps_per_period=20, min_steps=2000, cfl=1.0, res_tol=1e-6):
                 Re=RHO * u_avg * W / MU, Pe_table1=W * 0.1 * u_avg / DIFF)
 
 
+def _plan_shear(row, W, AR, n, H, h, t_end, min_steps, cfl, res_tol, iters):
+    """Case S: steady linear shear u = G y over the trench (see V_MODES)."""
+    if row["mode"] != "steady":
+        raise SystemExit("v_mode 'shear' is steady only (mode = steady)")
+    G = _num(row, "shear_rate", float("nan"))
+    if not G > 0:
+        raise SystemExit("v_mode 'shear' needs shear_rate > 0 [1/s]")
+    # Courant limit on the uniform core (y <= core_y W) where the contaminant leaves the trench;
+    # the graded cells above are larger in proportion to their faster flow
+    u_core = G * GRADE["core_y"] * W
+    dt = min(t_end / min_steps, cfl * h / u_core)
+    n_steps = math.ceil(t_end / dt)
+    dt = t_end / n_steps
+    return dict(W=W, AR=AR, H=H, n_per_w=n, h=h, u_avg=G * H / 2, Us=None, Up=None, freq=0.0, St=None,
+                t_end=t_end, dt=dt, n_steps=n_steps, u_expr=f"{G:.10g} [s^-1] * y",
+                v_mode="shear", v_ratio=0.0, v_freq=0.0, v_phase_deg=0.0, v_expr=None, v_max=0.0, v_mean=0.0,
+                phi_deg=None, top_u=f"{G * H:.10g} [m/s]", top_v="0 [m/s]", shear_rate=G,
+                top_type="velocity-inlet", left_type="velocity-inlet",
+                Lu_W=_num(row, "Lu_W", 3.0), Ld_W=_num(row, "Ld_W", 10.0), split_cavity=True,
+                cavity_zones=["cavity", "cavity-lower"], grade=GRADE,
+                cfl=cfl, res_tol=res_tol, iters=iters,
+                Re=RHO * u_core * W / MU, Pe_table1=None, Pe_shear=G * W * W / DIFF)
+
+
 def mesh_args(p, out):
     """Command-line arguments for trenchflow.mesh for a plan p."""
     a = ["--W", str(p["W"]), "--AR", str(p["AR"]), "--n-per-w", str(p["n_per_w"]),
          "--Lu", str(p["Lu_W"]), "--Ld", str(p["Ld_W"]),
          "--top-type", p["top_type"], "--left-type", p["left_type"], "-o", str(out)]
+    if p["H"] != 2.5 * p["W"]:
+        a += ["--H", f"{p['H'] / p['W']:.10g}"]
+    if p.get("grade"):
+        g = p["grade"]
+        a += ["--grade-ratio", str(g["ratio"]), "--grade-hmax", str(g["hmax"]),
+              "--core-x", str(g["core_x"]), "--core-y", str(g["core_y"])]
     return a + (["--split-cavity"] if p["split_cavity"] else [])
 
 

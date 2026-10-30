@@ -11,6 +11,10 @@ Families (W = 1 um, AR 1 and AR 5, t_end = 0.4 ms, 40 cells/W, residuals 1e-6, C
       (u, v) = S(t) (cos phi, -sin phi); both sides open, trench centred and split upper/lower.
       Geometries: 1 um AR 1 and AR 5 (0.4 ms, steady and 200 kHz), 100 um AR 5 (0.1 s, convection-dominated).
   A0  exact copy of the original baseline mesh (no trench split) for the reproduction check.
+  S   trench calibration: steady near-wall shear u = G y, G = 10 ... 2e5 1/s, AR 1 and AR 5, taller graded
+      domain (H = 10 W). Gives cleaning vs local shear rate, the link to the wafer-scale flow.
+  T   wafer-scale tank (one inlet, tilted wafer, steady k-omega SST, trenchflow/tank.py): jet meets the
+      300 mm wafer at 15..90 deg, aimed at the centre from 30 mm; output = shear rate along the wafer.
 All other cases split the trench into upper/lower halves (report zones only) for the deep-mixing metric.
 Comparison grid at the angles 15/30/45/60/75 deg: steady V = tan(phi) u_avg (B, steady rinse) and
 V = tan(phi) U(t) (Bf, 200 kHz) against the constant-speed rotation R at the same angles.
@@ -24,7 +28,11 @@ from trenchflow.physics import plan
 
 HERE = Path(__file__).resolve().parent
 COLS = ["case", "family", "W_m", "AR", "mode", "u_avg_m_s", "freq_Hz", "t_end_s", "n_per_w", "walltime",
-        "v_mode", "v_ratio", "v_freq_Hz", "v_phase_deg", "angle_deg", "split", "cfl", "res_tol", "iters", "note"]
+        "v_mode", "v_ratio", "v_freq_Hz", "v_phase_deg", "angle_deg", "split", "cfl", "res_tol", "iters", "note",
+        # Case S (shear-driven trench) and Case T (wafer-scale tank); appended so field 10 stays walltime
+        "H_W", "Lu_W", "Ld_W", "shear_rate", "standoff_mm", "slot_mm", "aim_mm", "wafer_mm", "refine"]
+SHEAR_RATES = (("10", 10), ("100", 100), ("1k", 1e3), ("10k", 1e4), ("100k", 1e5), ("200k", 2e5))
+TANK_ANGLES = (15, 30, 45, 60, 75, 90)
 RINSE = {"steady": ("steady", 0), "osc200k": ("osc", 200000)}
 
 
@@ -70,13 +78,38 @@ def rows():
             out.append(row(f"R_{wtag}_ar{ar}_{rinse}_a{ang:02d}", "R", ar, rinse,
                            f"same speed, stream at {ang} deg from the wafer", "rotate",
                            W=W, t_end=t_end, angle=ang))
+    # S: trench calibration in a near-wall shear flow u = G y (what a trench sees on a real wafer)
+    for ar in (1, 5):
+        for tag, G in SHEAR_RATES:
+            r = row(f"S_ar{ar}_G{tag}", "S", ar, "steady", f"near-wall shear G = {G:g} 1/s", "shear")
+            r.update(H_W="10", Lu_W="3", Ld_W="10", shear_rate=f"{G:g}", u_avg_m_s="0")
+            out.append(r)
+    # T: wafer-scale tank, one inlet, wafer tilted so the jet meets it at angle phi (steady RANS)
+    for ang in TANK_ANGLES:
+        out.append(tank_row(f"T_a{ang:02d}", ang, f"one inlet, jet at {ang} deg to the wafer, aimed at the centre"))
+    out.append(tank_row("T_a45_r2", 45, "mesh check: T_a45 with cells refined 2x", refine="2"))
     return out
 
 
+def tank_row(case, ang, note, refine="1"):
+    r = {c: "" for c in COLS}
+    r.update(case=case, family="T", mode="steady", u_avg_m_s="0.15", freq_Hz="0", angle_deg=ang,
+             res_tol="1e-6", iters="6000", note=note, standoff_mm="30", slot_mm="10", aim_mm="0",
+             wafer_mm="300", refine=refine)
+    return r
+
+
 def walltime(r):
+    if r["family"] == "T":
+        return ("12:00:00" if r["refine"] not in ("", "1") else "08:00:00"), 0.0
     p = plan(r)
     n = p["n_per_w"]
-    cells = (p["Lu_W"] + 1 + p["Ld_W"]) * 2.5 * n * n + p["AR"] * n * n
+    if p.get("grade"):
+        from trenchflow import mesh
+        cells = mesh.build(p["W"], p["W"] * p["AR"], p["H"], p["Lu_W"] * p["W"], p["Ld_W"] * p["W"], n,
+                           True, p["grade"])[5]["n_cells"]
+    else:
+        cells = (p["Lu_W"] + 1 + p["Ld_W"]) * 2.5 * n * n + p["AR"] * n * n
     est = 2.8 * p["n_steps"] / 7540 * cells / 25600
     return f"{min(240, max(4, math.ceil(2.5 * est))):02d}:00:00", est
 
@@ -85,7 +118,8 @@ if __name__ == "__main__":
     rs = rows()
     for r in rs:
         r["walltime"], est = walltime(r)
-        print(f"{r['case']:30s} steps={plan(r)['n_steps']:6d} est={est:5.1f} h walltime={r['walltime']}")
+        steps = "steady" if r["family"] == "T" else f"{plan(r)['n_steps']:6d}"
+        print(f"{r['case']:30s} steps={steps:>6s} est={est:5.1f} h walltime={r['walltime']}")
     with open(HERE / "cases.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=COLS, lineterminator="\n")
         w.writeheader()

@@ -19,7 +19,8 @@ while IFS=, read -r case _ _ _ _ _ _ _ _ walltime _; do
     if grep -qx "$case" <<<"$queued"; then
         st=RUNNING
     elif [[ -f "$dir/summary.json" ]]; then
-        if head -1 "$dir/history.csv" 2>/dev/null | grep -q "c_deep" || [[ "$case" == A0_* ]]; then
+        # A0 (original mesh) and T (wafer-scale tank) have no deep-trench metric by design
+        if head -1 "$dir/history.csv" 2>/dev/null | grep -q "c_deep" || [[ "$case" == A0_* || "$case" == T_* ]]; then
             st=DONE
         else
             st=DONE-OLD

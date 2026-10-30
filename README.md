@@ -10,12 +10,14 @@ The original project is not modified. Case A here re-runs its baseline with the 
 
 | Case | What | Model level | State |
 |---|---|---|---|
-| A | Original baseline: rinse U(t), v = 0, symmetry top | Paper A | implemented; HPC runs pending |
-| B, Bf | + imposed transverse inflow V through the top (steady; or V = λU, fixed approach angle) | Level 1: **imposed flow** | implemented; HPC runs pending |
-| C | + pulsed V with its own frequency/phase | Level 1: **imposed flow** | implemented; HPC runs pending |
-| R | **angle sweep at constant speed**: whole stream from the top at φ = 0–90° in 15° steps, open sides, trench split upper/lower; finds the angle that maximizes in-trench mixing | Level 1: **imposed flow** | implemented; HPC runs pending |
+| A | Original baseline: rinse U(t), v = 0, symmetry top | Paper A | done on Puma |
+| B, Bf | + imposed transverse inflow V through the top (steady; or V = λU, fixed approach angle) | Level 1: **imposed flow** | done on Puma |
+| C | + pulsed V with its own frequency/phase | Level 1: **imposed flow** | done on Puma |
+| R | **angle sweep at constant speed**: whole stream from the top at φ = 0–90° in 15° steps, open sides, trench split upper/lower; finds the angle that maximizes in-trench mixing | Level 1: **imposed flow** | done on Puma |
+| S | trench in a near-wall **shear flow** u = G·y, G = 10–2×10⁵ s⁻¹: cleaning vs local shear rate (the link to the wafer scale) | Level 1: **imposed flow** | implemented; HPC runs pending |
+| T | **wafer-scale tank, one inlet, tilted wafer** (300 mm, steady k-ω SST): shear rate along the wafer for jet angles 15–90° | wafer-scale CFD | implemented; HPC runs pending |
 | D | Megasonic incidence angle θ → acoustic streaming force → flow | Level 3: perturbation acoustics | **designed, not implemented** (docs/formulation.md §7) |
-| E | Comparison and verification figures | – | `analyze.py` (tested on synthetic data) |
+| E | Comparison and verification figures | – | `analyze.py`; `analyze_wafer.py` for S + T (tested on synthetic data) |
 
 **Cases B/C impose a transverse flow; they don't calculate megasonic streaming.** No acoustic results exist yet.
 
@@ -32,7 +34,9 @@ The original project is not modified. Case A here re-runs its baseline with the 
 | `trenchflow/mesh.py` | 2D Fluent mesh, copied from the baseline; `--top-type symmetry/velocity-inlet` |
 | `trenchflow/physics.py` | case plans, U/V expressions, angle convention, acoustic scales, Sherwood number (pure Python) |
 | `trenchflow/fluent.py` | Fluent setup (baseline code + velocity-component inlets + balance reports) |
-| `make_cases.py` → `cases.csv` | the 92-case matrix (edit the script, not the CSV) |
+| `trenchflow/tank.py` | Case T: wafer-scale tank mesh, steady k-ω SST setup, wall-shear export |
+| `analyze_wafer.py` | Cases S + T: cleaning map along the wafer and best tilt |
+| `make_cases.py` → `cases.csv` | the 111-case matrix (edit the script, not the CSV) |
 | `run_case.py`, `run_case.slurm`, `submit_cases.sh` | run one case / SLURM job with auto-continuation / submit by pattern |
 | `check_runs.sh`, `iter_stats.sh` | run status; iterations per time step |
 | `analyze.py` | figures + CSV data + `results/analysis/verification.md` |
@@ -92,6 +96,24 @@ For W = 1 µm, AR 1 and AR 5, `analyze.py` also writes:
 - `angle_comparison_ar*.png`: the flow angle made two ways at 0–90°. Adding V = tan φ·U to the full rinse
   (more flow) vs tilting at the same speed (Case R, the equivalent of tilting the wafer or nozzle with the
   same pump flow). Steady and pulsed, with U-only reference lines.
+
+## Best wafer tilt with one inlet (Cases S + T)
+
+Every trench on a wafer does not see the same flow: near the surface the liquid runs almost parallel to
+the wafer, with a shear rate G that varies from the jet's impact point outward. Case T computes G along
+the wafer for each tilt; Case S gives a trench's cleaning as a function of G. `analyze_wafer.py` combines
+them into a cleaning map of the wafer and picks the tilt that gives 95 % of the wafer the most cleaning
+(docs/formulation.md §3c).
+
+```bash
+cd ~/3d_nand_2 && git pull
+bash submit_cases.sh T_a45 --setup-only          # smoke test of the tank model (20 iterations)
+bash submit_cases.sh S_ar5_G1k --setup-only      # smoke test of the shear-driven trench (5 steps)
+grep -E "ok$|failed|Error|tank mesh|iter |C/C0" $(ls -t logs/*.out | head -2)
+bash submit_cases.sh '^(S|T)_'                   # 12 trench + 7 tank jobs, 1-9 h each
+# when finished (compute node):
+python analyze_wafer.py    # wafer_calibration, wafer_shear_profiles, wafer_cleaning_ar*.png, wafer_best_tilt.csv
+```
 
 All cases except `A0` split the trench into upper/lower halves. This adds report zones only; `A0` vs
 `A_ar1_osc200k` checks that the physics is unchanged.

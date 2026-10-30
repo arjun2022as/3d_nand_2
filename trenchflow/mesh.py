@@ -6,6 +6,7 @@ three options, all off by default so the baseline mesh is byte-identical:
   --top-type      symmetry (baseline) | velocity-inlet (transverse inflow, Cases B/C/R)
   --left-type     velocity-inlet named "inlet" (baseline) | pressure-outlet named "left" (open side, Case R)
   --split-cavity  split the trench into "cavity" (upper half) and "cavity-lower" (lower half)
+  --grade-ratio   geometric cell growth away from the trench (taller/longer domains, Case S)
 
 Geometry follows Lin, Busnaina & Suni (2002), Fig. 1. y = 0 is the wafer surface.
 
@@ -48,16 +49,45 @@ CELL_ZONES = [(2, "channel"), (3, "cavity"), (12, "cavity-lower")]
 NODE_ZONE_ID = 1
 
 
-def build(W, D, H, Lu, Ld, n_per_w, split_cavity=False):
+def graded(L, h, core, ratio, hmax):
+    """Cell sizes from the trench outward over length L: uniform h up to `core`, then growing by
+    `ratio` per cell up to hmax. The outermost cells are rescaled so the sizes sum to L exactly."""
+    sizes, total = [], 0.0
+    while total < L - 1e-12 * L:
+        s = h if not sizes or total < core - 1e-12 * L else min(hmax, sizes[-1] * ratio)
+        sizes.append(s)
+        total += s
+    over = total - L
+    if over > 0:                        # shrink the outer graded cells, or the last one if all uniform
+        k = next((i for i, s in enumerate(sizes) if s > h * (1 + 1e-9)), len(sizes) - 1)
+        tail = sum(sizes[k:])
+        sizes[k:] = [s * (tail - over) / tail for s in sizes[k:]]
+    return sizes
+
+
+def build(W, D, H, Lu, Ld, n_per_w, split_cavity=False, grade=None):
+    """grade = None: uniform square cells (baseline). grade = dict(ratio, hmax, core_x, core_y) in units
+    of W: uniform cells within core_x of the trench and below core_y, geometric growth outside."""
     h = W / n_per_w
-    nu, nw, nd = max(1, round(Lu / h)), n_per_w, max(1, round(Ld / h))
-    nh, ndp = max(1, round(H / h)), max(1, round(D / h))
+    nw, ndp = n_per_w, max(1, round(D / h))
+    if grade:
+        g = grade
+        up = graded(Lu, h, g["core_x"] * W, g["ratio"], g["hmax"] * W)
+        dn = graded(Ld, h, g["core_x"] * W, g["ratio"], g["hmax"] * W)
+        hy = graded(H, h, g["core_y"] * W, g["ratio"], g["hmax"] * W)
+        xs_up = [-sum(up[:len(up) - k]) for k in range(len(up))]      # from x = -Lu toward the trench
+        xs_dn = [W + sum(dn[:k]) for k in range(len(dn) + 1)]
+        ys_ch = [sum(hy[:k]) for k in range(len(hy) + 1)]
+        nu, nd, nh = len(up), len(dn), len(hy)
+    else:
+        nu, nd, nh = max(1, round(Lu / h)), max(1, round(Ld / h)), max(1, round(H / h))
+        xs_up = [-Lu + Lu * i / nu for i in range(nu)]
+        xs_dn = [W + Ld * i / nd for i in range(nd + 1)]
+        ys_ch = [H * j / nh for j in range(nh + 1)]
     NX = nu + nw + nd
 
-    xs = ([-Lu + Lu * i / nu for i in range(nu)]
-          + [W * i / nw for i in range(nw)]
-          + [W + Ld * i / nd for i in range(nd + 1)])
-    ys = [-D + D * j / ndp for j in range(ndp)] + [H * j / nh for j in range(nh + 1)]
+    xs = xs_up + [W * i / nw for i in range(nw)] + xs_dn
+    ys = [-D + D * j / ndp for j in range(ndp)] + ys_ch
 
     # cells as lattice (i, j) of their lower-left corner; channel first, then cavity
     cells = [(i, j, 2) for j in range(ndp, ndp + nh) for i in range(NX)]
@@ -204,17 +234,24 @@ def main(argv=None):
     ap.add_argument("--left-type", choices=["velocity-inlet", "pressure-outlet"], default="velocity-inlet",
                     help="left boundary: velocity inlet 'inlet' (baseline) or open pressure outlet 'left'")
     ap.add_argument("--split-cavity", action="store_true", help="separate upper/lower trench cell zones")
+    ap.add_argument("--grade-ratio", type=float, default=0.0,
+                    help="> 1: geometric cell growth away from the trench (0 = uniform, baseline)")
+    ap.add_argument("--grade-hmax", type=float, default=0.5, help="largest graded cell / W")
+    ap.add_argument("--core-x", type=float, default=1.0, help="uniform region either side of the trench / W")
+    ap.add_argument("--core-y", type=float, default=2.5, help="uniform region above the wafer / W")
     ap.add_argument("-o", "--out", required=True, help="output .msh path")
     a = ap.parse_args(argv)
 
     W = a.W
     D, H, Lu, Ld = a.AR * W, a.H * W, a.Lu * W, a.Ld * W
-    nodes, cells, xs, ys, by_zone, info = build(W, D, H, Lu, Ld, a.n_per_w, a.split_cavity)
+    grade = (dict(ratio=a.grade_ratio, hmax=a.grade_hmax, core_x=a.core_x, core_y=a.core_y)
+             if a.grade_ratio > 1 else None)
+    nodes, cells, xs, ys, by_zone, info = build(W, D, H, Lu, Ld, a.n_per_w, a.split_cavity, grade)
     check(nodes, cells, xs, ys, by_zone, W, D, H, Lu, Ld)
     title = f"Trench W={W:g} m D={D:g} m H={H:g} m, {a.n_per_w} cells/W"
     write_msh(a.out, nodes, cells, by_zone, title, a.top_type, a.left_type)
     info.update(W=W, D=D, H=H, Lu=Lu, Ld=Ld, msh=a.out, top_type=a.top_type,
-                left_type=a.left_type, split_cavity=a.split_cavity)
+                left_type=a.left_type, split_cavity=a.split_cavity, grade=grade)
     print(json.dumps(info))
     return info
 

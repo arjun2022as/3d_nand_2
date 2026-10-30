@@ -3,7 +3,8 @@
 
 Case A (v_mode = none) is the Lin, Busnaina & Suni (2002) baseline exactly as in
 3d_nand/ansys_busnaina. Cases B/C add an imposed transverse inflow V(t) through the top
-boundary (see trenchflow/physics.py and docs/formulation.md).
+boundary (see trenchflow/physics.py and docs/formulation.md). Case S drives the trench with a
+near-wall shear flow; Case T (wafer-scale tank, trenchflow/tank.py) is dispatched to its own runner.
 
     python run_case.py --case B_ar1_steady_l0.5 --procs 4
     python run_case.py --case B_ar1_steady_l0.5 --setup-only     # 5 steps into results/<case>_test
@@ -47,7 +48,13 @@ def main():
     ap.add_argument("--checkpoint-hours", type=float, default=6)
     a = ap.parse_args()
 
-    p = plan(load_case(a.case, CASES_CSV), a.steps_per_period, a.min_steps, a.cfl, a.res_tol)
+    row = load_case(a.case, CASES_CSV)
+    if row["family"] == "T":            # wafer-scale tank flow: steady RANS, its own setup
+        from trenchflow import tank
+        out = Path(a.out or HERE / "results" / (f"{a.case}_test" if a.setup_only else a.case)).resolve()
+        sys.exit(tank.run(a.case, row, a.procs, out, a.setup_only, a.plan_only, a.force))
+
+    p = plan(row, a.steps_per_period, a.min_steps, a.cfl, a.res_tol)
     a.iters = p["iters"] or a.iters
     p["iters"] = a.iters
     log("case", a.case, json.dumps(p, indent=1))

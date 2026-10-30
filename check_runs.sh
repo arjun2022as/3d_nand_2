@@ -12,7 +12,12 @@ tail -n +2 cases.csv | while IFS=, read -r case _; do
     [[ -d "$dir" ]] || continue
     running=$(squeue -u "$USER" -h -n "$case" -o %T 2>/dev/null | head -1)
     hist_rows=$(($(wc -l < "$dir/history.csv" 2>/dev/null || echo 1) - 1))
-    if [[ -f "$dir/summary.json" ]]; then
+    if [[ "$case" == T_* && -f "$dir/summary.json" ]]; then      # wafer-scale steady run
+        conv=$(grep -o '"converged": [a-z]*' "$dir/summary.json" | grep -o '[a-z]*$')
+        its=$(grep -o '"iterations": [0-9]*' "$dir/summary.json" | grep -o '[0-9]*$')
+        if [[ "$conv" == true ]]; then status=DONE; note=""; else status=UNCONVERGED; note="see history.csv"; fi
+        printf "%-26s %-10s %15s %10s %s\n" "$case" "$status" "$its it" "-" "$note"
+    elif [[ -f "$dir/summary.json" ]]; then
         run=$(grep -o '"steps_run": [0-9]*' "$dir/summary.json" | grep -o '[0-9]*$')
         tot=$(grep -o '"n_steps": [0-9]*' "$dir/summary.json" | grep -o '[0-9]*$')
         eff=$(grep -o '"cleaning_efficiency": [0-9.e-]*' "$dir/summary.json" | grep -o '[0-9.e-]*$')

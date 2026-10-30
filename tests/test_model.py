@@ -167,10 +167,12 @@ def test_case_table_consistent():
     names = [r["case"] for r in rows]
     assert len(names) == len(set(names))
     for r in rows:
-        p = plan(r)
-        assert p["n_steps"] > 0 and p["dt"] > 0
         h, m, s = (int(x) for x in r["walltime"].split(":"))
         assert h <= 240
+        if r["family"] == "T":                 # wafer-scale steady runs: planned by trenchflow.tank
+            continue
+        p = plan(r)
+        assert p["n_steps"] > 0 and p["dt"] > 0
         assert (p["v_mode"] == "none") == (r["family"] in ("A", "A0"))
         if r["case"].endswith(("_a15", "_a30", "_a45", "_a60", "_a75")):   # angle grid matches its name
             assert p["phi_deg"] == pytest.approx(float(r["case"][-2:]), abs=1e-4)
@@ -207,3 +209,69 @@ def test_parse_slurm_time():
     assert parse_slurm_time("1-02:03:04") == 93784
     assert parse_slurm_time("05:30") == 330
     assert parse_slurm_time("UNLIMITED") is None
+
+
+# ---------------------------------------------------------------- Case S (shear) and Case T (tank)
+def test_graded_spacing_sums_exactly_and_keeps_core_uniform():
+    h = 0.025
+    for L, core in ((3.0, 1.0), (10.0, 1.0), (7.5, 2.5), (0.6, 1.0)):
+        s = mesh.graded(L, h, core, 1.15, 0.5)
+        assert sum(s) == pytest.approx(L, rel=1e-12)
+        n_core = min(len(s), round(core / h))
+        assert all(x == pytest.approx(h) for x in s[:n_core - 1])        # uniform next to the trench
+        assert max(s) <= 0.5 + 1e-12
+        assert all(b <= a * 1.15 * (1 + 1e-9) for a, b in zip(s, s[1:]))
+
+
+def test_shear_case_plan_and_graded_mesh(tmp_path):
+    from trenchflow.physics import GRADE, mesh_args
+    p = plan(row_by("S_ar5_G1k"))
+    W, H, G = p["W"], p["H"], 1e3
+    assert p["v_mode"] == "shear" and H == pytest.approx(10 * W)
+    assert evaluate(p["u_expr"], y=2e-6) == pytest.approx(G * 2e-6)          # u = G y at the inlet
+    assert evaluate(p["top_u"]) == pytest.approx(G * H) and evaluate(p["top_v"]) == 0   # continuous at top
+    assert p["dt"] <= p["h"] / (G * GRADE["core_y"] * W) * (1 + 1e-9)
+    assert p["split_cavity"] and p["cavity_zones"] == ["cavity", "cavity-lower"]
+    p["n_per_w"] = 8
+    info = mesh.main(mesh_args(p, tmp_path / "s.msh"))      # runs the orientation/length/area checks
+    assert info["H"] == pytest.approx(H) and info["grade"]["ratio"] == GRADE["ratio"]
+    with pytest.raises(SystemExit):
+        plan(dict(row_by("S_ar1_G1k"), mode="osc"))
+
+
+def test_tank_plan_same_flow_and_aim_at_every_angle():
+    from trenchflow.tank import plan_tank
+    for ang in (15, 30, 45, 60, 75, 90):
+        p = plan_tank(row_by(f"T_a{ang:02d}"))
+        x0, x1 = p["slot_x"]
+        assert -p["v_in"] * (x1 - x0) == pytest.approx(p["U"] * p["slot"])           # same pump flow
+        assert math.hypot(p["u_in"], p["v_in"]) == pytest.approx(p["U"])
+        assert math.degrees(math.atan2(-p["v_in"], p["u_in"])) == pytest.approx(ang)  # angle from wafer
+        xc = 0.5 * (x0 + x1)
+        assert xc + p["standoff"] * p["u_in"] / -p["v_in"] == pytest.approx(p["aim"], abs=1e-12)
+    with pytest.raises(SystemExit):
+        plan_tank(dict(row_by("T_a15"), angle_deg="5"))             # slot would not fit above the wafer
+
+
+def test_tank_mesh_checks(tmp_path):
+    from trenchflow.tank import mesh_only
+    for ang in (15, 90):
+        row = dict(row_by(f"T_a{ang:02d}"), refine="0.25")           # coarse, for speed
+        p, nx, ny = mesh_only(row, tmp_path / f"t{ang}.msh")
+        text = (tmp_path / f"t{ang}.msh").read_text()
+        for zone in ("velocity-inlet nozzle", "wall wafer", "pressure-outlet open-top", "fluid tank"):
+            assert zone in text
+
+
+def test_wafer_interp_and_best_tilt():
+    import analyze_wafer as aw
+    tab = [(10.0, {"eta": 1.0}), (100.0, {"eta": 3.0}), (1000.0, {"eta": 7.0})]
+    assert aw.interp(10 ** 1.5, tab, "eta") == (pytest.approx(2.0), False)
+    assert aw.interp(1.0, tab, "eta") == (1.0, True)                  # below the calibration: clipped
+    assert aw.interp(1e4, tab, "eta") == (7.0, True)
+    s = aw.wafer_stats([0.0, 1.0, 2.0, 3.0], [5.0, 1.0, 5.0, 5.0])
+    assert s["min"] == 1.0 and s["x_worst"] == 1.0 and s["mean"] == pytest.approx(4.0)
+    table = {15: dict(min=2.0, mean=9.0), 45: dict(min=3.0, mean=4.0), 90: dict(min=3.0, mean=5.0)}
+    assert aw.best_tilt(table, key="min") == 90                       # equal worst case: higher mean wins
+    table = {15: dict(p5=6.0, mean=9.0), 45: dict(p5=7.0, mean=4.0)}
+    assert aw.best_tilt(table) == 45                                  # default ranking: 5th percentile

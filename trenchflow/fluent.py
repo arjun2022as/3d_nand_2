@@ -4,6 +4,7 @@ Material, model, initialisation, time-stepping and checkpoint code is taken unch
 converged baseline 3d_nand/ansys_busnaina/run_case.py (commit 141e41b). New here:
   * velocity-component inlets (left inlet and top) for the transverse flow of Cases B/C,
   * extra reports for verification: domain contaminant, concentration bounds, mass flow rates.
+The wafer-scale tank model (Case T) has its own setup in trenchflow/tank.py and reuses the helpers here.
 """
 import csv
 import json
@@ -214,6 +215,14 @@ def setup(solver, msh, p):
         for n_ in ("u_top", "v_top"):
             log(f"{n_} =", ne[n_].definition())
         set_inlet_components(s, "top", "u_top", "v_top")
+    elif p["v_mode"] == "shear":
+        # Case S: linear near-wall shear u = G y; the top moves with the shear flow and lets nothing in
+        ne["u_top"] = {"definition": p["top_u"]}
+        ne["v_zero"] = {"definition": "0 [m/s]"}
+        for n_ in ("u_top", "v_zero"):
+            log(f"{n_} =", ne[n_].definition())
+        set_inlet_components(s, "inlet", "u_in", "v_zero")
+        set_inlet_components(s, "top", "u_top", "v_zero")
     else:
         ne["v_amp"] = {"definition": p["v_expr"]}                   # V(t) >= 0, toward the wafer
         ne["v_left"] = {"definition": inlet_v_expr(p["H"])}         # 0 at wafer -> -V at top corner

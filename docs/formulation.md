@@ -101,6 +101,56 @@ Geometries: W = 1 µm with AR 1 and AR 5 (diffusion-dominated, 0.4 ms), the same
 and W = 100 µm AR 5 (convection-dominated, 0.1 s). Different optima at the two scales would show which
 mechanism controls mixing.
 
+## 3c. One inlet and a tilted wafer: wafer scale (Case T) linked to trench scale (Case S)
+
+Question: with **one inlet** (fixed pump flow) and a wafer that can be tilted, which tilt cleans the
+trenches on the **whole wafer** best?
+
+**Why the trench cases alone cannot answer it.** A trench is 1 µm wide; the wafer is 300 mm. Above the
+wafer the flow forms a boundary layer about a millimetre thick, so the liquid within a few micrometres of
+the surface, where the trenches are, moves almost parallel to the wafer whatever the inlet angle. Near
+the wall the local flow is a linear shear, u ≈ G·y, v ≈ 0, with shear rate G = |τ_wall| / μ. The only
+place with a real approach angle is near the jet's impact point, and there G → 0 (stagnation point).
+So the inlet angle reaches the trenches **through G(x)**, the shear-rate distribution along the wafer,
+not as a local angle. Tilting moves the impact point and spreads G differently over the wafer.
+
+**Case S: trench calibration.** The trench in a steady linear shear, u = G·y:
+
+| Boundary | Case S |
+|---|---|
+| Left x = −3W | velocity inlet, (u, v) = (G·y, 0) |
+| Top y = H = 10W | velocity inlet, (u, v) = (G·H, 0): moves with the shear flow, no flux through it |
+| Right x = W + 10W | pressure outlet |
+| Mesh | 40 cells/W within 1W of the trench and below 2.5W; outside, cells grow ×1.15 per cell up to W/2 |
+
+The linear shear is an exact Navier–Stokes solution, so the profile is the same everywhere along the
+channel. G = 10, 100, 10³, 10⁴, 10⁵, 2×10⁵ s⁻¹ for AR 1 and AR 5 (t_end = 0.4 ms) gives η(G), η_deep(G),
+Sh(G). For comparison, Paper A's model (0.15 m/s over a 2.5 µm-high channel) corresponds to
+G ≈ 3U/H ≈ 2×10⁵ s⁻¹, far above the shear of a wafer-scale flow (estimated 10–10⁴ s⁻¹).
+
+**Case T: wafer-scale tank.** Steady 2D flow in the wafer frame (tilting the wafer = turning the inlet):
+
+| Item | Value |
+|---|---|
+| Domain | 300 mm × 30 mm above the wafer; the tank is taken as large, so the sides and top are open pressure outlets |
+| Inlet | slot b = 10 mm on the top boundary, centred at x_c = aim − h_s / tan φ, velocity U(cos φ, −sin φ), U = 0.15 m/s; opening b / sin φ, so the flow U·b is the same at every angle |
+| Angles | φ = 15, 30, 45, 60, 75, 90° (jet angle to the wafer; wafer tilt from facing the inlet = 90° − φ), aimed at the wafer centre |
+| Model | k-ω SST (slot Re = U b / ν ≈ 1500), water, first cell 10 µm (y⁺ < 1), coupled solver, stop when the mean wall shear changes < 10⁻⁴ per 200 iterations |
+| Output | τ_x(x), y⁺(x) on the wafer → G(x) = |τ_x| / μ (`wafer_shear.csv`) |
+| Check | T_a45_r2: cells refined 2× in both directions |
+
+**Linking (`analyze_wafer.py`).** η of a trench at position x = η_S(G(x)), interpolated linearly in
+log G between the Case S points (values outside the calibrated range are clipped and the clipped wafer
+fraction is reported). Per tilt: the 5th percentile of η over the wafer length (cleaning reached by 95 %
+of the wafer), the mean, and the worst point. The best tilt maximises the 5th percentile, with the mean as
+tie-breaker. The single worst point is the stagnation point (G = 0 on one face), so it is reported but not
+used to rank.
+
+**Assumptions to keep in mind.** 2D: the inlet is a slot across the wafer, not a round nozzle. Large tank:
+walls far away. Steady RANS: a planar jet at Re ≈ 1500 is unsteady; time-averaged shear is used. Each
+trench responds only to the local G (trench ≪ boundary-layer thickness ≪ wafer). Imposed flow only: no
+megasonic acoustics.
+
 ## 4. Angles: two different quantities
 
 | Symbol | Definition | Used in |
